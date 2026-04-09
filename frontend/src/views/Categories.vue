@@ -35,7 +35,6 @@
               <template #default="{ row }">
                 <div class="category-item">
                   <span v-if="row.level > 0" class="indent" :style="{ width: row.level * 24 + 'px' }"></span>
-                  <span class="category-icon">{{ row.icon || defaultIcon }}</span>
                   <span>{{ row.name }}</span>
                   <el-tag v-if="row.level > 0" size="small" type="info" class="sub-tag">子</el-tag>
                 </div>
@@ -71,7 +70,6 @@
               <template #default="{ row }">
                 <div class="category-item">
                   <span v-if="row.level > 0" class="indent" :style="{ width: row.level * 24 + 'px' }"></span>
-                  <span class="category-icon">{{ row.icon || defaultIcon }}</span>
                   <span>{{ row.name }}</span>
                   <el-tag v-if="row.level > 0" size="small" type="info" class="sub-tag">子</el-tag>
                 </div>
@@ -108,26 +106,6 @@
           />
         </el-form-item>
         
-        <!-- Emoji选择 -->
-        <el-form-item label="图标" prop="icon">
-          <div class="emoji-section">
-            <div class="emoji-display" @click="toggleEmojiPicker">
-              <span class="selected-emoji">{{ form.icon || defaultIcon }}</span>
-            </div>
-            <span class="emoji-hint">点击选择图标</span>
-          </div>
-          
-          <!-- Emoji选择器 -->
-          <div v-if="showEmojiPicker" class="emoji-picker-wrapper">
-            <EmojiPicker
-              :native="true"
-              :disable-skin-tones="true"
-              :hide-group-names="false"
-              @select="onEmojiSelect"
-            />
-          </div>
-        </el-form-item>
-
         <el-form-item label="分类类型" prop="type">
           <el-radio-group v-model="form.type" :disabled="isEdit || isMove">
             <el-radio-button value="EXPENSE">支出</el-radio-button>
@@ -157,11 +135,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
-import EmojiPicker from 'vue3-emoji-picker'
-import 'vue3-emoji-picker/css'
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/api/category'
 
 const activeTab = ref('EXPENSE')
@@ -176,10 +152,6 @@ const formInput = ref()
 const expenseTableRef = ref()
 const incomeTableRef = ref()
 const sortableInstances = ref([])
-const showEmojiPicker = ref(false)
-
-// 默认图标
-const defaultIcon = '📁'
 
 const form = reactive({
   id: null,
@@ -235,23 +207,6 @@ const flattenedIncomeCategories = computed(() => {
   const tree = categories.value.filter(c => c.type === 'INCOME')
   return flattenCategories(tree)
 })
-
-// Emoji选择
-const toggleEmojiPicker = () => {
-  showEmojiPicker.value = !showEmojiPicker.value
-}
-
-const onEmojiSelect = (emoji) => {
-  form.icon = emoji.i
-  showEmojiPicker.value = false
-}
-
-// 点击外部关闭emoji选择器
-const handleClickOutside = (e) => {
-  if (showEmojiPicker.value && !e.target.closest('.emoji-section') && !e.target.closest('.emoji-picker-wrapper')) {
-    showEmojiPicker.value = false
-  }
-}
 
 // 初始化拖拽排序
 const initSortable = () => {
@@ -347,10 +302,8 @@ const resetForm = () => {
   form.type = activeTab.value
   form.sortOrder = 0
   form.parentId = null
-  form.icon = ''
   isSubCategory.value = false
   isMove.value = false
-  showEmojiPicker.value = false
 }
 
 const handleAdd = () => {
@@ -429,11 +382,6 @@ const loadData = async () => {
 
 onMounted(() => {
   loadData()
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -475,14 +423,6 @@ onUnmounted(() => {
   display: inline-block;
 }
 
-.category-icon {
-  font-size: 20px;
-  margin-right: 8px;
-  line-height: 1;
-  width: 24px;
-  text-align: center;
-}
-
 .sub-tag {
   margin-left: 8px;
   font-size: 11px;
@@ -501,47 +441,6 @@ onUnmounted(() => {
   opacity: 0.9;
   background: #fff;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-/* Emoji选择器样式 */
-.emoji-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.emoji-display {
-  width: 48px;
-  height: 48px;
-  border: 2px solid #dcdfe6;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background: #fff;
-  transition: all 0.2s;
-}
-
-.emoji-display:hover {
-  border-color: #409EFF;
-  background: #ecf5ff;
-}
-
-.selected-emoji {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.emoji-hint {
-  font-size: 13px;
-  color: #909399;
-}
-
-.emoji-picker-wrapper {
-  margin-top: 10px;
-  z-index: 2000;
-  position: relative;
 }
 
 .form-tip {
