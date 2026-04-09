@@ -121,10 +121,9 @@ const expenseCategoryOption = computed(() => {
       type: 'pie',
       radius: ['35%', '60%'],
       center: ['35%', '50%'],
-      data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }],
-      itemStyle: {
-        color: (params) => expenseCategories.value[params.dataIndex]?.color || undefined
-      }
+      avoidLabelOverlap: false,
+      label: { show: false },
+      data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }]
     }]
   }
 })
@@ -142,10 +141,9 @@ const incomeCategoryOption = computed(() => {
       type: 'pie',
       radius: ['35%', '60%'],
       center: ['35%', '50%'],
-      data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }],
-      itemStyle: {
-        color: (params) => incomeCategories.value[params.dataIndex]?.color || undefined
-      }
+      avoidLabelOverlap: false,
+      label: { show: false },
+      data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }]
     }]
   }
 })
