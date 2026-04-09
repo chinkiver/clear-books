@@ -116,10 +116,11 @@ const expenseCategoryOption = computed(() => {
 
   return {
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    legend: { orient: 'vertical', right: 10, top: 'center' },
+    legend: { orient: 'vertical', right: 5, top: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12 } },
     series: [{
       type: 'pie',
-      radius: ['40%', '70%'],
+      radius: ['35%', '60%'],
+      center: ['35%', '50%'],
       data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }],
       itemStyle: {
         color: (params) => expenseCategories.value[params.dataIndex]?.color || undefined
@@ -136,10 +137,11 @@ const incomeCategoryOption = computed(() => {
 
   return {
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    legend: { orient: 'vertical', right: 10, top: 'center' },
+    legend: { orient: 'vertical', right: 5, top: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12 } },
     series: [{
       type: 'pie',
-      radius: ['40%', '70%'],
+      radius: ['35%', '60%'],
+      center: ['35%', '50%'],
       data: data.length > 0 ? data : [{ name: '暂无数据', value: 0 }],
       itemStyle: {
         color: (params) => incomeCategories.value[params.dataIndex]?.color || undefined
