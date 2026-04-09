@@ -429,7 +429,14 @@ const submitQuickAccount = async () => {
   await quickAccountRef.value.validate()
   quickAddLoading.value = true
   try {
-    const res = await createAccount(quickAccountForm)
+    // 创建普通对象提交
+    const submitData = {
+      name: quickAccountForm.name,
+      type: quickAccountForm.type,
+      balance: quickAccountForm.balance,
+      color: quickAccountForm.color
+    }
+    const res = await createAccount(submitData)
     ElMessage.success('账户创建成功')
     quickAddAccountVisible.value = false
     // 刷新账户列表并选中新账户
@@ -453,7 +460,15 @@ const submitQuickCategory = async () => {
   await quickCategoryRef.value.validate()
   quickAddLoading.value = true
   try {
-    const res = await createCategory(quickCategoryForm)
+    // 创建普通对象提交，避免 reactive 解包问题
+    const submitData = {
+      name: quickCategoryForm.name,
+      type: quickCategoryForm.type,
+      icon: quickCategoryForm.icon,
+      parentId: quickCategoryForm.parentId,
+      sortOrder: quickCategoryForm.sortOrder
+    }
+    const res = await createCategory(submitData)
     ElMessage.success('分类创建成功')
     quickAddCategoryVisible.value = false
     // 刷新分类列表并选中新分类
@@ -474,7 +489,12 @@ const submitQuickPaymentMethod = async () => {
   await quickPaymentMethodRef.value.validate()
   quickAddLoading.value = true
   try {
-    const res = await createPaymentMethod(quickPaymentMethodForm)
+    // 创建普通对象提交
+    const submitData = {
+      name: quickPaymentMethodForm.name,
+      sortOrder: quickPaymentMethodForm.sortOrder
+    }
+    const res = await createPaymentMethod(submitData)
     ElMessage.success('支付方式创建成功')
     quickAddPaymentMethodVisible.value = false
     // 刷新支付方式列表并选中新支付方式
