@@ -334,6 +334,8 @@ const initSortable = () => {
 }
 
 const handleTabChange = () => {
+  // 切换标签时重新加载对应类型的数据
+  loadData()
   nextTick(() => {
     initSortable()
   })
