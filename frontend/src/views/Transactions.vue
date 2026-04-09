@@ -180,7 +180,7 @@ const queryForm = reactive({
 const form = reactive({
   id: null,
   type: 'EXPENSE',
-  amount: 0,
+  amount: null,  // 初始为空，不预设0.01
   transactionDate: dayjs().format('YYYY-MM-DD'),
   accountId: '',
   toAccountId: '',
