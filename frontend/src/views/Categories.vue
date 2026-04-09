@@ -216,9 +216,11 @@ const availableParents = computed(() => {
 const flattenCategories = (tree, level = 0) => {
   const result = []
   for (const node of tree) {
-    result.push({ ...node, level })
-    if (node.children && node.children.length > 0) {
-      result.push(...flattenCategories(node.children, level + 1))
+    // 移除 children 属性，避免 Element Plus 将其识别为树形表格
+    const { children, ...rest } = node
+    result.push({ ...rest, level })
+    if (children && children.length > 0) {
+      result.push(...flattenCategories(children, level + 1))
     }
   }
   return result
