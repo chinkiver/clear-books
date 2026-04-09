@@ -104,35 +104,55 @@
           <el-date-picker v-model="form.transactionDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="账户" prop="accountId">
-          <el-select v-model="form.accountId" placeholder="请选择账户" style="width: 100%">
-            <el-option v-for="acc in accounts" :key="acc.id" :label="acc.name" :value="acc.id" />
-          </el-select>
+          <div style="display: flex; gap: 8px; width: 100%">
+            <el-select v-model="form.accountId" placeholder="请选择账户" style="flex: 1">
+              <el-option v-for="acc in accounts" :key="acc.id" :label="acc.name" :value="acc.id" />
+            </el-select>
+            <el-button type="primary" plain @click="openQuickAddAccount" title="新增账户">
+              <el-icon><Plus /></el-icon>
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="目标账户" prop="toAccountId" v-if="form.type === 'TRANSFER'">
-          <el-select v-model="form.toAccountId" placeholder="请选择目标账户" style="width: 100%">
-            <el-option v-for="acc in accounts" :key="acc.id" :label="acc.name" :value="acc.id" />
-          </el-select>
+          <div style="display: flex; gap: 8px; width: 100%">
+            <el-select v-model="form.toAccountId" placeholder="请选择目标账户" style="flex: 1">
+              <el-option v-for="acc in accounts" :key="acc.id" :label="acc.name" :value="acc.id" />
+            </el-select>
+            <el-button type="primary" plain @click="openQuickAddAccount" title="新增账户">
+              <el-icon><Plus /></el-icon>
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label=" " prop="countAsExpense" v-if="form.type === 'TRANSFER'">
           <el-checkbox v-model="form.countAsExpense">计入支出（如转账给他人）</el-checkbox>
         </el-form-item>
         <el-form-item label="分类" prop="categoryId" v-if="form.type !== 'TRANSFER'">
-          <el-select v-model="form.categoryId" placeholder="请选择分类" style="width: 100%">
-            <el-option
-              v-for="cat in filteredCategories"
-              :key="cat.id"
-              :label="cat.parentId ? '　└ ' + cat.name : cat.name"
-              :value="cat.id"
-            >
-              <span v-if="cat.parentId" style="padding-left: 20px; color: #909399;">└ {{ cat.name }}</span>
-              <span v-else>{{ cat.name }}</span>
-            </el-option>
-          </el-select>
+          <div style="display: flex; gap: 8px; width: 100%">
+            <el-select v-model="form.categoryId" placeholder="请选择分类" style="flex: 1">
+              <el-option
+                v-for="cat in filteredCategories"
+                :key="cat.id"
+                :label="cat.parentId ? '　└ ' + cat.name : cat.name"
+                :value="cat.id"
+              >
+                <span v-if="cat.parentId" style="padding-left: 20px; color: #909399;">└ {{ cat.name }}</span>
+                <span v-else>{{ cat.name }}</span>
+              </el-option>
+            </el-select>
+            <el-button type="primary" plain @click="openQuickAddCategory" title="新增分类">
+              <el-icon><Plus /></el-icon>
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="支付方式" prop="paymentMethodId">
-          <el-select v-model="form.paymentMethodId" placeholder="请选择支付方式" clearable style="width: 100%">
-            <el-option v-for="pm in paymentMethods" :key="pm.id" :label="pm.name" :value="pm.id" />
-          </el-select>
+          <div style="display: flex; gap: 8px; width: 100%">
+            <el-select v-model="form.paymentMethodId" placeholder="请选择支付方式" clearable style="flex: 1">
+              <el-option v-for="pm in paymentMethods" :key="pm.id" :label="pm.name" :value="pm.id" />
+            </el-select>
+            <el-button type="primary" plain @click="openQuickAddPaymentMethod" title="新增支付方式">
+              <el-icon><Plus /></el-icon>
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="备注" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" />
@@ -143,6 +163,72 @@
         <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 快速新增账户弹窗 -->
+    <el-dialog v-model="quickAddAccountVisible" title="新增账户" width="400px" destroy-on-close>
+      <el-form ref="quickAccountRef" :model="quickAccountForm" :rules="quickAccountRules" label-width="80px">
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="quickAccountForm.name" placeholder="请输入账户名称" />
+        </el-form-item>
+        <el-form-item label="类型" prop="type">
+          <el-select v-model="quickAccountForm.type" placeholder="请选择类型" style="width: 100%">
+            <el-option label="现金" value="CASH" />
+            <el-option label="借记卡" value="DEBIT" />
+            <el-option label="信用卡" value="CREDIT" />
+            <el-option label="储蓄卡" value="SAVINGS" />
+            <el-option label="银行卡" value="BANK" />
+            <el-option label="电子钱包" value="EWALLET" />
+            <el-option label="投资账户" value="INVESTMENT" />
+            <el-option label="其他" value="OTHER" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="初始余额">
+          <el-input-number v-model="quickAccountForm.balance" :precision="2" :min="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="颜色">
+          <el-color-picker v-model="quickAccountForm.color" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickAddAccountVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitQuickAccount" :loading="quickAddLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 快速新增分类弹窗 -->
+    <el-dialog v-model="quickAddCategoryVisible" title="新增分类" width="400px" destroy-on-close>
+      <el-form ref="quickCategoryRef" :model="quickCategoryForm" :rules="quickCategoryRules" label-width="80px">
+        <el-form-item label="类型" prop="type">
+          <el-radio-group v-model="quickCategoryForm.type">
+            <el-radio-button value="EXPENSE">支出</el-radio-button>
+            <el-radio-button value="INCOME">收入</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="quickCategoryForm.name" placeholder="请输入分类名称" />
+        </el-form-item>
+        <el-form-item label="图标">
+          <el-input v-model="quickCategoryForm.icon" placeholder="例如：🍔（可选）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickAddCategoryVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitQuickCategory" :loading="quickAddLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 快速新增支付方式弹窗 -->
+    <el-dialog v-model="quickAddPaymentMethodVisible" title="新增支付方式" width="400px" destroy-on-close>
+      <el-form ref="quickPaymentMethodRef" :model="quickPaymentMethodForm" :rules="quickPaymentMethodRules" label-width="80px">
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="quickPaymentMethodForm.name" placeholder="请输入支付方式名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickAddPaymentMethodVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitQuickPaymentMethod" :loading="quickAddLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -151,14 +237,43 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from '@/api/transaction'
-import { getAccounts } from '@/api/account'
-import { getCategories } from '@/api/category'
-import { getPaymentMethods } from '@/api/paymentMethod'
+import { getAccounts, createAccount } from '@/api/account'
+import { getCategories, createCategory } from '@/api/category'
+import { getPaymentMethods, createPaymentMethod } from '@/api/paymentMethod'
 
 const loading = ref(false)
 const submitLoading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+
+// 快速新增弹窗控制
+const quickAddAccountVisible = ref(false)
+const quickAddCategoryVisible = ref(false)
+const quickAddPaymentMethodVisible = ref(false)
+const quickAddLoading = ref(false)
+
+// 快速新增表单
+const quickAccountForm = reactive({ name: '', type: 'BANK', balance: 0, color: '#409EFF' })
+const quickCategoryForm = reactive({ name: '', type: 'EXPENSE', icon: '', parentId: null, sortOrder: 0 })
+const quickPaymentMethodForm = reactive({ name: '', sortOrder: 0 })
+
+const quickAccountRef = ref()
+const quickCategoryRef = ref()
+const quickPaymentMethodRef = ref()
+
+const quickAccountRules = {
+  name: [{ required: true, message: '请输入账户名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择账户类型', trigger: 'change' }]
+}
+
+const quickCategoryRules = {
+  name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择分类类型', trigger: 'change' }]
+}
+
+const quickPaymentMethodRules = {
+  name: [{ required: true, message: '请输入支付方式名称', trigger: 'blur' }]
+}
 const tableData = ref([])
 const total = ref(0)
 const accounts = ref([])
@@ -299,6 +414,75 @@ const handleEdit = (row) => {
   isEdit.value = true
   Object.assign(form, row)
   dialogVisible.value = true
+}
+
+// 快速新增账户
+const openQuickAddAccount = () => {
+  quickAccountForm.name = ''
+  quickAccountForm.type = 'BANK'
+  quickAccountForm.balance = 0
+  quickAccountForm.color = '#409EFF'
+  quickAddAccountVisible.value = true
+}
+
+const submitQuickAccount = async () => {
+  await quickAccountRef.value.validate()
+  quickAddLoading.value = true
+  try {
+    const res = await createAccount(quickAccountForm)
+    ElMessage.success('账户创建成功')
+    quickAddAccountVisible.value = false
+    // 刷新账户列表并选中新账户
+    accounts.value = await getAccounts()
+    form.accountId = res.id
+  } finally {
+    quickAddLoading.value = false
+  }
+}
+
+// 快速新增分类
+const openQuickAddCategory = () => {
+  quickCategoryForm.name = ''
+  quickCategoryForm.type = form.type === 'INCOME' ? 'INCOME' : 'EXPENSE'
+  quickCategoryForm.icon = ''
+  quickCategoryForm.parentId = null
+  quickAddCategoryVisible.value = true
+}
+
+const submitQuickCategory = async () => {
+  await quickCategoryRef.value.validate()
+  quickAddLoading.value = true
+  try {
+    const res = await createCategory(quickCategoryForm)
+    ElMessage.success('分类创建成功')
+    quickAddCategoryVisible.value = false
+    // 刷新分类列表并选中新分类
+    categories.value = await getCategories()
+    form.categoryId = res.id
+  } finally {
+    quickAddLoading.value = false
+  }
+}
+
+// 快速新增支付方式
+const openQuickAddPaymentMethod = () => {
+  quickPaymentMethodForm.name = ''
+  quickAddPaymentMethodVisible.value = true
+}
+
+const submitQuickPaymentMethod = async () => {
+  await quickPaymentMethodRef.value.validate()
+  quickAddLoading.value = true
+  try {
+    const res = await createPaymentMethod(quickPaymentMethodForm)
+    ElMessage.success('支付方式创建成功')
+    quickAddPaymentMethodVisible.value = false
+    // 刷新支付方式列表并选中新支付方式
+    paymentMethods.value = await getPaymentMethods()
+    form.paymentMethodId = res.id
+  } finally {
+    quickAddLoading.value = false
+  }
 }
 
 const handleDelete = (row) => {
