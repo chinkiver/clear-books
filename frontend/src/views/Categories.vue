@@ -107,7 +107,7 @@
         </el-form-item>
         
         <el-form-item label="分类类型" prop="type">
-          <el-radio-group v-model="form.type" :disabled="isEdit || isMove">
+          <el-radio-group v-model="form.type" disabled>
             <el-radio-button value="EXPENSE">支出</el-radio-button>
             <el-radio-button value="INCOME">收入</el-radio-button>
           </el-radio-group>
