@@ -35,7 +35,10 @@
       <el-col :span="16">
         <el-card>
           <template #header>
-            <span>近6个月收支趋势</span>
+            <div class="card-header">
+              <span>近6个月收支趋势</span>
+              <el-text type="info" size="small">{{ sixMonthsRange }}</el-text>
+            </div>
           </template>
           <div class="chart-container">
             <v-chart class="chart" :option="trendOption" autoresize />
@@ -45,7 +48,10 @@
       <el-col :span="8">
         <el-card>
           <template #header>
-            <span>本月支出分类</span>
+            <div class="card-header">
+              <span>{{ currentMonthText }}支出分类</span>
+              <el-text type="info" size="small">{{ monthDateRange }}</el-text>
+            </div>
           </template>
           <div class="chart-container">
             <v-chart class="chart" :option="categoryOption" autoresize />
@@ -125,6 +131,22 @@ const trendOption = computed(() => {
       { name: '支出', type: 'line', data: expenseData, smooth: true, itemStyle: { color: '#52C41A' } }
     ]
   }
+})
+
+const currentMonthText = computed(() => {
+  return dayjs().format('YYYY年M月')
+})
+
+const monthDateRange = computed(() => {
+  const start = dayjs().startOf('month').format('MM-DD')
+  const end = dayjs().endOf('month').format('MM-DD')
+  return `${start} ~ ${end}`
+})
+
+const sixMonthsRange = computed(() => {
+  const start = dayjs().subtract(5, 'month').startOf('month').format('YYYY-MM')
+  const end = dayjs().format('YYYY-MM')
+  return `${start} ~ ${end}`
 })
 
 const categoryOption = computed(() => {
@@ -211,6 +233,12 @@ onMounted(loadData)
 
 .chart-row {
   margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .chart-container {
