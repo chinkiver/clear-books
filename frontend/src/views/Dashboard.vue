@@ -121,8 +121,8 @@ const trendOption = computed(() => {
     xAxis: { type: 'category', data: months },
     yAxis: { type: 'value' },
     series: [
-      { name: '收入', type: 'line', data: incomeData, smooth: true, itemStyle: { color: '#52C41A' } },
-      { name: '支出', type: 'line', data: expenseData, smooth: true, itemStyle: { color: '#F5222D' } }
+      { name: '收入', type: 'line', data: incomeData, smooth: true, itemStyle: { color: '#F5222D' } },
+      { name: '支出', type: 'line', data: expenseData, smooth: true, itemStyle: { color: '#52C41A' } }
     ]
   }
 })
@@ -198,11 +198,11 @@ onMounted(loadData)
 }
 
 .income-text {
-  color: #52C41A;
+  color: #F5222D;
 }
 
 .expense-text {
-  color: #F5222D;
+  color: #52C41A;
 }
 
 .primary-text {

@@ -579,11 +579,11 @@ onMounted(async () => {
 }
 
 .income-text {
-  color: #52C41A;
+  color: #F5222D;
 }
 
 .expense-text {
-  color: #F5222D;
+  color: #52C41A;
 }
 
 .pagination {

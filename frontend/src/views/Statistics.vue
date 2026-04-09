@@ -102,7 +102,7 @@ const trendOption = computed(() => {
         color: trendType.value === 'INCOME' ? 'rgba(82, 196, 26, 0.3)' : 'rgba(245, 34, 45, 0.3)'
       },
       itemStyle: {
-        color: trendType.value === 'INCOME' ? '#52C41A' : '#F5222D'
+        color: trendType.value === 'INCOME' ? '#F5222D' : '#52C41A'
       }
     }]
   }
