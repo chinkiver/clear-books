@@ -49,23 +49,23 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" stripe>
-        <el-table-column prop="transactionDate" label="日期" width="120" />
-        <el-table-column prop="type" label="类型" width="80">
+        <el-table-column prop="transactionDate" label="日期" width="110" />
+        <el-table-column prop="type" label="类型" width="70">
           <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag :type="getTypeTag(row.type)" size="small">{{ getTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="categoryName" label="分类" width="120" />
-        <el-table-column prop="amount" label="金额" width="120">
+        <el-table-column prop="categoryName" label="分类" width="100" show-overflow-tooltip />
+        <el-table-column prop="amount" label="金额" width="110">
           <template #default="{ row }">
             <span :class="row.type === 'INCOME' ? 'income-text' : 'expense-text'">
               {{ row.type === 'INCOME' ? '+' : '-' }}{{ formatAmount(row.amount) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="accountName" label="账户" width="120" />
-        <el-table-column prop="paymentMethodName" label="支付方式" width="120" />
-        <el-table-column prop="description" label="备注" show-overflow-tooltip />
+        <el-table-column prop="accountName" label="账户" width="160" show-overflow-tooltip />
+        <el-table-column prop="paymentMethodName" label="支付方式" width="100" show-overflow-tooltip />
+        <el-table-column prop="description" label="备注" min-width="150" show-overflow-tooltip />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
