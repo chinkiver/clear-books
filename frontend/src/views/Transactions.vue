@@ -98,7 +98,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="金额" prop="amount">
-          <el-input-number v-model="form.amount" :precision="2" :min="0.01" style="width: 100%" />
+          <el-input-number v-model="form.amount" :precision="2" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="日期" prop="transactionDate">
           <el-date-picker v-model="form.transactionDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
@@ -279,7 +279,7 @@ const resetQuery = () => {
 const resetForm = () => {
   form.id = null
   form.type = 'EXPENSE'
-  form.amount = 0
+  form.amount = null
   form.transactionDate = dayjs().format('YYYY-MM-DD')
   form.accountId = ''
   form.toAccountId = ''
