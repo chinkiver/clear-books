@@ -63,13 +63,32 @@ EOF
 # 重启 Docker 使配置生效
 systemctl restart docker
 
+# 安装 docker-compose（传统方式，兼容旧脚本）
+echo "[额外] 安装 docker-compose..."
+if ! command -v docker-compose &> /dev/null; then
+    # 使用国内镜像下载 docker-compose
+    COMPOSE_VERSION=$(curl -s https://mirrors.ustc.edu.cn/github-release/docker/compose/LatestRelease 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+    if [ -z "$COMPOSE_VERSION" ]; then
+        COMPOSE_VERSION="2.35.0"  # 默认版本
+    fi
+    
+    curl -L "https://mirrors.ustc.edu.cn/github-release/docker/compose/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+fi
+
 # 验证安装
 echo ""
 echo "=========================================="
 echo "Docker 安装完成！"
 echo "=========================================="
 docker --version
-docker-compose --version
+echo ""
+echo "Docker Compose 版本:"
+docker-compose --version || docker compose version
 echo ""
 echo "国内镜像源已配置，拉取镜像会更快"
 echo "如需验证：docker run hello-world"
+echo ""
+echo "注意：新版 Docker 使用 'docker compose'（带空格）命令"
+echo "      同时兼容传统的 'docker-compose' 命令"
