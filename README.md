@@ -310,6 +310,54 @@ server: {
 - **API文档**：启动后端服务后，访问 http://localhost:8080/swagger-ui.html 查看API文档
 - **数据备份**：H2数据库文件存储在 `backend/data/accountingdb.mv.db`，可直接备份该文件
 
+---
+
+## 🐳 Docker 部署（生产环境）
+
+### 快速部署
+
+```bash
+# 1. 克隆项目
+git clone <repository-url>
+cd clear-books
+
+# 2. 配置环境变量
+cp .env.example .env
+vim .env  # 修改密码和配置
+
+# 3. 运行部署脚本
+sudo ./deploy.sh
+```
+
+部署完成后访问 `https://服务器IP` 即可。
+
+### 主要脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `deploy.sh` | 首次部署，自动安装 Docker、生成 SSL 证书、启动服务 |
+| `update.sh` | 更新应用，自动备份、拉取代码、重建容器 |
+| `backup.sh` | 备份数据，支持本地备份和腾讯云 COS 上传 |
+
+### 手动管理
+
+```bash
+# 查看日志
+docker-compose logs -f
+
+# 重启服务
+docker-compose restart
+
+# 停止服务
+docker-compose down
+
+# 更新（代码变更后）
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+---
+
 ### 后续可扩展功能
 
 - [ ] 预算管理：设置月度/年度预算，超支提醒
