@@ -34,9 +34,13 @@ ssh root@你的服务器IP
 git clone https://github.com/yourusername/clear-books.git
 cd clear-books
 
-# 3. 复制并修改环境变量
+# 3. 复制并修改环境变量（密码自己设置，用于初始化服务）
 cp .env.example .env
 vim .env  # 修改为你的配置
+
+# ⚠️ 注意：MYSQL_ROOT_PASSWORD、MYSQL_PASSWORD、JWT_SECRET 等
+# 都是你自己设置的密码，不是已有的密钥！
+# 建议修改成你自己的强密码
 
 # 4. 运行部署脚本
 chmod +x deploy.sh
@@ -89,6 +93,30 @@ systemctl start docker
 docker --version
 docker-compose --version
 ```
+
+#### 2.1 配置 Docker 国内镜像源（推荐）
+
+由于 Docker Hub 国内访问慢，建议配置国内镜像源加速：
+
+```bash
+# 创建配置
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ]
+}
+EOF
+
+# 重启 Docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+更多镜像源配置参考：[DOCKER_MIRROR.md](./DOCKER_MIRROR.md)
 
 ---
 
