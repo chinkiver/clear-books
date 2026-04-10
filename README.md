@@ -22,22 +22,23 @@ A personal accounting system based on Spring Boot + Vue3 + H2, helping you recor
 
 ### Features
 
-- **Account Management**: Manage bank cards, WeChat Wallet, Alipay, and other accounts / 管理银行卡、微信钱包、支付宝等账户
-- **Payment Methods**: Manage WeChat Pay, Alipay, and other payment methods / 管理微信支付、支付宝支付等支付方式
-- **Category Management**: Custom income and expense categories with tree structure / 自定义收入和支出分类，支持两级树形结构
-- **Transaction Records**: Record detailed information for each transaction / 记录每笔交易的详细信息
-- **Quick Add**: Quickly add accounts/categories/payment methods during transaction entry / 录入流水时可快速添加账户、分类、支付方式
-- **Statistics & Reports**: Weekly, monthly, quarterly, and yearly statistics with charts / 按周、月、季度、年统计收支情况，支持图表展示
-- **Multi-user Support**: Support for multiple user registration and login / 支持多用户注册和登录
+- **Account Management**: Manage bank cards, WeChat Wallet, Alipay, and other accounts
+- **Payment Methods**: Manage WeChat Pay, Alipay, and other payment methods
+- **Category Management**: Custom income and expense categories with tree structure
+- **Transaction Records**: Record detailed information for each transaction
+- **Quick Add**: Quickly add accounts/categories/payment methods during transaction entry
+- **Statistics & Reports**: Weekly, monthly, quarterly, and yearly statistics with charts
+- **Multi-user Support**: Support for multiple user registration and login
 
 ### Tech Stack
 
 #### Backend
 - JDK 8+ (Compatible with JDK 17)
-- Spring Boot 2.7.x (Compatible with Spring Boot 3.x)
+- Spring Boot 2.7.x
 - Spring Security + JWT
 - Spring Data JPA
-- H2 Database (Embedded, no additional installation required)
+- H2 Database (Development)
+- MySQL 8.0 (Production)
 
 #### Frontend
 - Vue 3 + Composition API
@@ -46,115 +47,25 @@ A personal accounting system based on Spring Boot + Vue3 + H2, helping you recor
 - Pinia State Management
 - Vite Build Tool
 
-### Quick Start
+### Quick Start (Development)
 
-#### 1. Clone Project
 ```bash
+# 1. Clone Project
 git clone <repository-url>
 cd clear-books
-```
 
-#### 2. Start Backend Service
-```bash
+# 2. Start Backend
 cd backend
-# Windows
-mvnw spring-boot:run
-# Linux/Mac
 ./mvnw spring-boot:run
-```
-Or if Maven is installed:
-```bash
-mvn spring-boot:run
-```
-Backend runs at http://localhost:8080
+# or: mvn spring-boot:run
 
-H2 Database Console: http://localhost:8080/h2-console
-- JDBC URL: `jdbc:h2:file:./data/accountingdb`
-- Username: `sa`
-- Password: (empty)
-
-#### 3. Start Frontend Service
-```bash
-cd frontend
+# 3. Start Frontend
+cd ../frontend
 npm install
 npm run dev
 ```
-Frontend runs at http://localhost:5173
 
-#### 4. Access Application
-Open http://localhost:5173 in browser. Register an account on first use.
-
-### Project Structure
-```
-clear-books/
-├── backend/                    # Backend project
-│   ├── src/main/java/com/accounting/
-│   │   ├── config/             # Configuration classes
-│   │   ├── controller/         # Controller layer
-│   │   ├── service/            # Service layer
-│   │   ├── repository/         # Data access layer
-│   │   ├── entity/             # Entity classes
-│   │   ├── dto/                # DTOs
-│   │   ├── security/           # JWT security config
-│   │   └── exception/          # Exception handling
-│   ├── src/main/resources/
-│   │   ├── application.yml     # Configuration file
-│   │   └── data.sql            # Initial data
-│   └── pom.xml                 # Maven config
-│
-├── frontend/                   # Frontend project
-│   ├── src/
-│   │   ├── api/                # API interfaces
-│   │   ├── components/         # Common components
-│   │   ├── views/              # Page views
-│   │   ├── router/             # Router config
-│   │   ├── stores/             # Pinia state management
-│   │   └── utils/              # Utility functions
-│   ├── package.json
-│   └── vite.config.js
-│
-├── LICENSE                     # MIT License
-└── README.md                   # This file
-```
-
-### Default Ports
-| Service | Port | URL |
-|---------|------|-----|
-| Frontend | 5173 | http://localhost:5173 |
-| Backend | 8080 | http://localhost:8080 |
-| H2 Console | 8080 | http://localhost:8080/h2-console |
-
-### Configuration
-
-#### Backend (backend/src/main/resources/application.yml)
-```yaml
-# Database configuration
-spring.datasource.url: jdbc:h2:file:./data/accountingdb
-
-# JWT configuration
-jwt.secret: your-secret-key
-jwt.expiration: 86400000  # 24 hours
-
-# CORS configuration
-cors.allowed-origins: http://localhost:5173
-```
-
-#### Frontend (frontend/vite.config.js)
-```javascript
-server: {
-  port: 5173,
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8080',
-      changeOrigin: true
-    }
-  }
-}
-```
-
-### Development Notes
-- **API Docs**: Visit http://localhost:8080/swagger-ui.html after starting backend
-- **Data Backup**: H2 database file is at `backend/data/accountingdb.mv.db`
+Access http://localhost:5173
 
 ---
 
@@ -174,11 +85,12 @@ server: {
 ### 技术架构
 
 #### 后端
-- JDK 8+ (兼容 JDK 17)
-- Spring Boot 2.7.x (兼容 Spring Boot 3.x)
+- JDK 17 (生产环境推荐)
+- Spring Boot 2.7.x
 - Spring Security + JWT 认证
 - Spring Data JPA
-- H2 嵌入式数据库（无需额外安装）
+- H2 嵌入式数据库（开发环境）
+- MySQL 8.0（生产环境）
 
 #### 前端
 - Vue 3 + Composition API
@@ -187,185 +99,201 @@ server: {
 - Pinia 状态管理
 - Vite 构建工具
 
-### 快速开始
-
-#### 1. 克隆项目
-```bash
-git clone <repository-url>
-cd clear-books
-```
-
-#### 2. 启动后端服务
-```bash
-cd backend
-# Windows
-mvnw spring-boot:run
-# Linux/Mac
-./mvnw spring-boot:run
-```
-或者使用已安装的 Maven：
-```bash
-mvn spring-boot:run
-```
-后端服务将运行在 http://localhost:8080
-
-H2 数据库控制台：http://localhost:8080/h2-console
-- JDBC URL: `jdbc:h2:file:./data/accountingdb`
-- 用户名: `sa`
-- 密码: （留空）
-
-#### 3. 启动前端服务
-```bash
-cd frontend
-npm install
-npm run dev
-```
-前端服务将运行在 http://localhost:5173
-
-#### 4. 访问应用
-在浏览器中打开 http://localhost:5173，首次使用需要注册账号。
-
-### 界面预览
-
-系统采用左侧菜单栏 + 右侧内容区域的后台管理布局：
-
-- **首页仪表盘**：展示本月收支概览、近6个月趋势图、支出分类饼图、账户余额
-- **流水管理**：记录每日流水，支持筛选、分页、新增、编辑、删除
-- **账户管理**：管理各类账户，支持余额调整，可设置账户颜色
-- **分类管理**：自定义收入和支出分类，支持拖拽排序、调整层级
-- **支付方式**：管理支付方式，支持拖拽排序
-- **统计报表**：多维度图表分析，支持自定义时间范围
-
-### 项目结构
-```
-clear-books/
-├── backend/                    # 后端项目
-│   ├── src/main/java/com/accounting/
-│   │   ├── config/             # 配置类
-│   │   ├── controller/         # 控制器层
-│   │   ├── service/            # 业务层
-│   │   ├── repository/         # 数据访问层
-│   │   ├── entity/             # 实体类
-│   │   ├── dto/                # 数据传输对象
-│   │   ├── security/           # JWT安全配置
-│   │   └── exception/          # 异常处理
-│   ├── src/main/resources/
-│   │   ├── application.yml     # 配置文件
-│   │   └── data.sql            # 初始化数据
-│   └── pom.xml                 # Maven配置
-│
-├── frontend/                   # 前端项目
-│   ├── src/
-│   │   ├── api/                # API接口
-│   │   ├── components/         # 公共组件
-│   │   ├── views/              # 页面视图
-│   │   ├── router/             # 路由配置
-│   │   ├── stores/             # Pinia状态管理
-│   │   └── utils/              # 工具函数
-│   ├── package.json
-│   └── vite.config.js
-│
-├── LICENSE                     # MIT许可证
-└── README.md                   # 本文件
-```
-
-### 默认端口
-
-| 服务 | 端口 | 地址 |
-|------|------|------|
-| 前端 | 5173 | http://localhost:5173 |
-| 后端 | 8080 | http://localhost:8080 |
-| H2 Console | 8080 | http://localhost:8080/h2-console |
-
-### 配置说明
-
-#### 后端配置 (backend/src/main/resources/application.yml)
-```yaml
-# 数据库配置
-spring.datasource.url: jdbc:h2:file:./data/accountingdb
-
-# JWT配置
-jwt.secret: your-secret-key
-jwt.expiration: 86400000  # 24小时
-
-# CORS配置
-cors.allowed-origins: http://localhost:5173
-```
-
-#### 前端配置 (frontend/vite.config.js)
-```javascript
-server: {
-  port: 5173,
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8080',
-      changeOrigin: true
-    }
-  }
-}
-```
-
-### 开发说明
-
-- **API文档**：启动后端服务后，访问 http://localhost:8080/swagger-ui.html 查看API文档
-- **数据备份**：H2数据库文件存储在 `backend/data/accountingdb.mv.db`，可直接备份该文件
-
----
-
-## 🐳 Docker 部署（生产环境）
-
-### 快速部署
+### 开发环境快速开始
 
 ```bash
 # 1. 克隆项目
 git clone <repository-url>
 cd clear-books
 
-# 2. 配置环境变量
-cp .env.example .env
-vim .env  # 修改密码和配置
+# 2. 启动后端服务
+cd backend
+# Windows
+mvnw spring-boot:run
+# Linux/Mac
+./mvnw spring-boot:run
 
-# 3. 运行部署脚本
-sudo ./deploy.sh
+# 或使用已安装的 Maven
+mvn spring-boot:run
+
+# 3. 启动前端服务
+cd ../frontend
+npm install
+npm run dev
 ```
 
-部署完成后访问 `https://服务器IP` 即可。
+在浏览器中打开 http://localhost:5173
 
-### 主要脚本
+---
 
-| 脚本 | 用途 |
-|------|------|
-| `deploy.sh` | 首次部署，自动安装 Docker、生成 SSL 证书、启动服务 |
-| `update.sh` | 更新应用，自动备份、拉取代码、重建容器 |
-| `backup.sh` | 备份数据，支持本地备份和腾讯云 COS 上传 |
+## 🚀 生产环境部署
 
-### 手动管理
+### 部署流程
+
+```
+本地打包 → 上传服务器 → 运行
+```
+
+### 1. 本地打包（开发机）
 
 ```bash
-# 查看日志
-docker-compose logs -f
+# 进入项目目录
+cd clear-books
 
-# 重启服务
-docker-compose restart
+# 配置生产环境变量
+cp .env.example .env
+vim .env  # 修改 MySQL 密码、JWT 密钥
 
-# 停止服务
-docker-compose down
+# 构建 JAR 包（前端+后端合并）
+./build.sh
+```
 
-# 更新（代码变更后）
-docker-compose build --no-cache
-docker-compose up -d
+构建完成后，JAR 文件位于 `backend/target/personal-accounting-1.0.0.jar`
+
+### 2. 上传到服务器
+
+```bash
+# SSH 到服务器，创建目录
+ssh root@服务器IP "mkdir -p /opt/clear-books"
+
+# 上传 JAR 包
+scp backend/target/personal-accounting-1.0.0.jar root@服务器IP:/opt/clear-books/
+
+# 上传 .env 配置文件
+scp .env root@服务器IP:/opt/clear-books/
+
+# 上传脚本
+scp start.sh stop.sh install.sh root@服务器IP:/opt/clear-books/
+```
+
+### 3. 服务器配置（仅首次）
+
+```bash
+# SSH 登录服务器
+ssh root@服务器IP
+
+cd /opt/clear-books
+
+# 安装环境（JDK、MySQL）- 只需执行一次
+chmod +x install.sh
+./install.sh
+
+# 启动服务
+chmod +x start.sh stop.sh
+./start.sh
+```
+
+访问 `http://服务器IP:8080` 即可使用。
+
+---
+
+### 脚本说明
+
+| 脚本 | 运行位置 | 用途 |
+|------|---------|------|
+| `build.sh` | 本地开发机 | 构建前端 + 复制到后端 + 打包 JAR |
+| `install.sh` | 服务器（仅一次）| 安装 JDK、MySQL、创建数据库 |
+| `start.sh` | 服务器 | 启动应用 |
+| `stop.sh` | 服务器 | 停止应用 |
+| `update.sh` | 本地开发机 | 完整更新流程 |
+| `backup.sh` | 服务器 | 备份 MySQL 数据 |
+
+---
+
+### 日常更新流程
+
+```bash
+# 方式 1：全自动更新
+./update.sh
+
+# 方式 2：手动分步
+# 1. 本地重新构建
+./build.sh
+
+# 2. 上传到服务器
+scp backend/target/personal-accounting-1.0.0.jar root@服务器IP:/opt/clear-books/
+
+# 3. SSH 到服务器重启
+ssh root@服务器IP "cd /opt/clear-books && ./stop.sh && ./start.sh"
 ```
 
 ---
 
-### 后续可扩展功能
+### 服务器管理命令
 
-- [ ] 预算管理：设置月度/年度预算，超支提醒
-- [ ] 账单导入：支持微信、支付宝账单CSV导入
-- [ ] 数据导出：导出Excel/JSON
-- [ ] 多币种：支持外币记账和汇率转换
-- [ ] 记账提醒：定期记账提醒
-- [ ] 数据同步：云端同步备份
+```bash
+# SSH 登录服务器
+cd /opt/clear-books
+
+# 启动应用
+./start.sh
+
+# 停止应用
+./stop.sh
+
+# 查看日志
+tail -f logs/app.log
+
+# 查看运行状态
+ps aux | grep personal-accounting
+```
+
+---
+
+### 目录结构
+
+**本地开发机：**
+```
+clear-books/
+├── backend/
+│   └── target/
+│       └── personal-accounting-1.0.0.jar   # ← 生成的JAR
+├── frontend/
+├── build.sh                                 # 本地构建
+└── update.sh                                # 更新脚本
+```
+
+**服务器：**
+```
+/opt/clear-books/
+├── personal-accounting-1.0.0.jar   # ← JAR 包
+├── .env                            # 环境变量
+├── start.sh                        # 启动脚本
+├── stop.sh                         # 停止脚本
+├── logs/
+│   └── app.log                     # 应用日志
+└── backups/                        # 备份目录
+```
+
+---
+
+### 手动构建（不使用脚本）
+
+```bash
+# 1. 构建前端
+cd frontend
+npm install
+npm run build
+
+# 2. 复制到后端
+cp -r dist/* ../backend/src/main/resources/static/
+
+# 3. 构建 JAR
+cd ../backend
+mvn clean package -DskipTests
+```
+
+---
+
+### 数据库管理
+
+```bash
+# 备份数据库
+mysqldump -u root -p accounting > backup.sql
+
+# 恢复数据库
+mysql -u root -p accounting < backup.sql
+```
 
 ---
 
@@ -374,21 +302,3 @@ docker-compose up -d
 [MIT License](LICENSE)
 
 Copyright (c) 2026 Clear Books Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
