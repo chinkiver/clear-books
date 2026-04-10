@@ -117,7 +117,31 @@ systemctl start docker
 docker --version
 ```
 
-#### 2.1 配置 Docker 国内镜像源（推荐）
+#### 2.1 安装 docker-compose
+
+新版 Docker 已内置 `docker compose` 命令（带空格），但为了兼容传统脚本，建议同时安装 `docker-compose`：
+
+```bash
+# 方式一：使用 DaoCloud 国内镜像（推荐，国内服务器）
+sudo curl -L "https://get.daocloud.io/docker/compose/releases/download/v2.35.0/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# 方式二：使用 GitHub 官方源（国外服务器）
+# sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# 添加执行权限
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+# 验证安装
+docker-compose --version
+```
+
+**注意**：
+- `docker compose`（带空格）是新版插件命令，已内置在 Docker 中
+- `docker-compose`（带横杠）是传统命令，需要单独安装
+- 两者功能相同，都支持使用
+
+#### 2.2 配置 Docker 国内镜像源（推荐）
 
 由于 Docker Hub 国内访问慢，建议配置国内镜像源加速：
 
