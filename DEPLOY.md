@@ -81,17 +81,40 @@ apt update && apt upgrade -y
 
 ### 步骤 2：安装 Docker（如未安装）
 
-```bash
-# 安装 Docker
-curl -fsSL https://get.docker.com | sh
+#### 方式一：使用国内镜像源安装（推荐，适合国内服务器）
 
-# 启动 Docker
+由于国内访问 Docker 官方脚本受限，使用项目提供的国内镜像安装脚本：
+
+```bash
+# 在项目目录执行
+chmod +x install-docker-cn.sh
+sudo ./install-docker-cn.sh
+```
+
+#### 方式二：手动安装（如果方式一失败）
+
+```bash
+# 1. 卸载旧版本
+apt-get remove -y docker docker-engine docker.io
+
+# 2. 安装依赖
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl gnupg
+
+# 3. 添加中科大镜像源
+curl -fsSL https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+
+# 4. 安装 Docker
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# 5. 启动 Docker
 systemctl enable docker
 systemctl start docker
 
 # 验证
 docker --version
-docker-compose --version
 ```
 
 #### 2.1 配置 Docker 国内镜像源（推荐）
