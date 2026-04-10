@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/accounting?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-    username: ${SPRING_DATASOURCE_USERNAME:accounting}
-    password: ${SPRING_DATASOURCE_PASSWORD:ClearBooks2026}
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:accounting}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:accounting}
+    password: ${MYSQL_PASSWORD:ClearBooksDB2024!}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -17,7 +17,7 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: false
 
   # 禁用 H2 控制台（生产环境）
@@ -25,32 +25,30 @@ spring:
     console:
       enabled: false
 
+  # 禁用 Redis 自动配置（我们在代码中手动配置）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+  # Redis Configuration (可选)
+  redis:
+    host: ${REDIS_HOST:}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+
 server:
-  port: 8080
-  # 允许外部访问
+  port: 6173
   address: 0.0.0.0
-  # 压缩响应
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/plain
 
 # JWT 配置
 jwt:
-  secret: ${JWT_SECRET:your-super-secret-jwt-key-change-in-production}
-  expiration: ${JWT_EXPIRATION:86400000}
+  secret: ${JWT_SECRET:your-super-secret-key-change-in-production}
+  expiration: 86400000
 
 # CORS 配置
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
-
-# 日志配置
-logging:
-  level:
-    root: WARN
-    com.accounting: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: /opt/clear-books/logs/app.log
-    max-size: 100MB
-    max-history: 30

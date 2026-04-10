@@ -14,6 +14,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -23,9 +27,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final CaptchaService captchaService;
+    private final RateLimitService rateLimitService;
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
+        // 验证验证码
+        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
+            throw new BusinessException("验证码错误或已过期");
+        }
+        
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
@@ -40,6 +51,17 @@ public class AuthService {
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
+        // 检查注册频率限制
+        String clientIp = getClientIp();
+        if (!rateLimitService.allowRegister(clientIp)) {
+            throw new BusinessException("注册过于频繁，请稍后再试");
+        }
+        
+        // 验证验证码
+        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
+            throw new BusinessException("验证码错误或已过期");
+        }
+        
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new BusinessException("用户名已存在");
         }
@@ -87,6 +109,35 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         return buildTokenResponse(newToken, UserDetailsImpl.build(user));
+    }
+    
+    /**
+     * 获取客户端 IP 地址
+     */
+    private String getClientIp() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return "unknown";
+        }
+        HttpServletRequest request = attributes.getRequest();
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 如果有多层代理，取第一个 IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip;
     }
 
     private TokenResponse buildTokenResponse(String token, UserDetailsImpl userDetails) {

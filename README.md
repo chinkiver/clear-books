@@ -5,11 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7.x-green.svg)](https://spring.io/projects/spring-boot)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
-[![JDK](https://img.shields.io/badge/JDK-8%2B-orange.svg)](https://www.oracle.com/java/)
+[![JDK](https://img.shields.io/badge/JDK-17%2B-orange.svg)](https://www.oracle.com/java/)
 
-A personal accounting system based on Spring Boot + Vue3 + H2, helping you record daily expenses and income, with statistics by week, month, quarter, and year.
+A personal accounting system based on Spring Boot + Vue3 + MySQL, helping you record daily expenses and income, with statistics by week, month, quarter, and year.
 
-基于 Spring Boot + Vue3 + H2 的个人记账系统，帮助您记录每日的开销和收入，按周、月、季度、年来统计整体收支情况。
+基于 Spring Boot + Vue3 + MySQL 的个人记账系统，帮助您记录每日的开销和收入，按周、月、季度、年来统计整体收支情况。
 
 [English](#english) | [中文](#中文)
 
@@ -33,12 +33,11 @@ A personal accounting system based on Spring Boot + Vue3 + H2, helping you recor
 ### Tech Stack
 
 #### Backend
-- JDK 8+ (Compatible with JDK 17)
+- JDK 17+
 - Spring Boot 2.7.x
 - Spring Security + JWT
 - Spring Data JPA
-- H2 Database (Development)
-- MySQL 8.0 (Production)
+- MySQL 8.0
 
 #### Frontend
 - Vue 3 + Composition API
@@ -54,18 +53,43 @@ A personal accounting system based on Spring Boot + Vue3 + H2, helping you recor
 git clone <repository-url>
 cd clear-books
 
-# 2. Start Backend
+# 2. Configure Environment
+cp .env.example .env
+# Edit .env with your MySQL credentials
+
+# 3. Start Backend
 cd backend
 ./mvnw spring-boot:run
 # or: mvn spring-boot:run
 
-# 3. Start Frontend
+# 4. Start Frontend
 cd ../frontend
 npm install
 npm run dev
 ```
 
 Access http://localhost:5173
+
+### Production Deployment
+
+```bash
+# 1. Build (Local)
+./scripts/local/build.sh        # Linux/Mac
+.\scripts\local\build.ps1      # Windows
+
+# 2. Upload to Server
+scp backend/target/personal-accounting-*.jar user@server:/opt/clear-books/
+scp scripts/server/start.sh user@server:/opt/clear-books/
+scp scripts/server/stop.sh user@server:/opt/clear-books/
+scp scripts/server/backup.sh user@server:/opt/clear-books/
+scp .env user@server:/opt/clear-books/
+
+# 3. Start (Server)
+ssh user@server "cd /opt/clear-books && chmod +x start.sh stop.sh backup.sh && ./start.sh"
+
+# 4. Setup Daily Backup (2:00 AM)
+ssh user@server "crontab -l | { cat; echo \"0 2 * * * /opt/clear-books/backup.sh >> /opt/clear-books/logs/backup.log 2>&1\"; } | crontab -"
+```
 
 ---
 
@@ -89,8 +113,7 @@ Access http://localhost:5173
 - Spring Boot 2.7.x
 - Spring Security + JWT 认证
 - Spring Data JPA
-- H2 嵌入式数据库（开发环境）
-- MySQL 8.0（生产环境）
+- MySQL 8.0
 
 #### 前端
 - Vue 3 + Composition API
@@ -106,7 +129,11 @@ Access http://localhost:5173
 git clone <repository-url>
 cd clear-books
 
-# 2. 启动后端服务
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 填入数据库信息
+
+# 3. 启动后端服务
 cd backend
 # Windows
 mvnw spring-boot:run
@@ -116,7 +143,7 @@ mvnw spring-boot:run
 # 或使用已安装的 Maven
 mvn spring-boot:run
 
-# 3. 启动前端服务
+# 4. 启动前端服务
 cd ../frontend
 npm install
 npm run dev
@@ -128,93 +155,97 @@ npm run dev
 
 ## 🚀 生产环境部署
 
-### 部署流程
+### 部署流程概览
 
 ```
-本地打包 → 上传服务器 → 运行
+本地构建 → 上传服务器 → 启动服务
 ```
 
-### 1. 本地打包（开发机）
+### 1. 本地构建
+
+#### Windows (PowerShell)
+
+```powershell
+.\scripts\local\build.ps1
+```
+
+#### Linux / macOS
 
 ```bash
-# 进入项目目录
-cd clear-books
-
-# 配置生产环境变量
-cp .env.example .env
-vim .env  # 修改 MySQL 密码、JWT 密钥
-
-# 构建 JAR 包（前端+后端合并）
-./build.sh
+./scripts/local/build.sh
 ```
 
-构建完成后，JAR 文件位于 `backend/target/personal-accounting-1.0.0.jar`
+构建完成后，JAR 文件位于 `backend/target/personal-accounting-*.jar`
 
-### 2. 上传到服务器
+### 2. 准备部署文件
+
+将以下文件上传到服务器的任意目录（例如 `/opt/clear-books`）：
+
+| 文件 | 来源 | 说明 |
+|------|------|------|
+| `personal-accounting-*.jar` | `backend/target/` | 应用主程序 |
+| `start.sh` | `scripts/server/` | 启动脚本 |
+| `stop.sh` | `scripts/server/` | 停止脚本 |
+| `backup.sh` | `scripts/server/` | 数据库备份脚本 |
+| `.env` | 项目根目录 | 数据库配置 |
+
+#### .env 配置文件示例
 
 ```bash
-# SSH 到服务器，创建目录
-ssh root@服务器IP "mkdir -p /opt/clear-books"
+# 数据库配置（由系统管理提供）
+MYSQL_URL=jdbc:mysql://localhost:3306/accounting?useSSL=false&serverTimezone=Asia/Shanghai
+MYSQL_USER=your_username
+MYSQL_PASSWORD=your_password
 
-# 上传 JAR 包
-scp backend/target/personal-accounting-1.0.0.jar root@服务器IP:/opt/clear-books/
-
-# 上传 .env 配置文件
-scp .env root@服务器IP:/opt/clear-books/
-
-# 上传脚本
-scp start.sh stop.sh install.sh root@服务器IP:/opt/clear-books/
+# JWT 密钥（建议使用 openssl rand -hex 32 生成）
+JWT_SECRET=your_random_secret_key_here
 ```
 
-### 3. 服务器配置（仅首次）
+### 3. 服务器启动应用
 
 ```bash
-# SSH 登录服务器
-ssh root@服务器IP
-
+# 进入部署目录（你上传文件的目录）
 cd /opt/clear-books
 
-# 安装环境（JDK、MySQL）- 只需执行一次
-chmod +x install.sh
-./install.sh
+# 添加执行权限（首次）
+chmod +x start.sh stop.sh
 
 # 启动服务
-chmod +x start.sh stop.sh
 ./start.sh
+
+# 停止服务
+./stop.sh
+
+# 重启服务
+./stop.sh && ./start.sh
 ```
 
-访问 `http://服务器IP:8080` 即可使用。
+访问 `http://服务器IP:6173` 即可使用。
 
 ---
 
 ### 脚本说明
 
-| 脚本 | 运行位置 | 用途 |
-|------|---------|------|
-| `build.sh` | 本地开发机 | 构建前端 + 复制到后端 + 打包 JAR |
-| `install.sh` | 服务器（仅一次）| 安装 JDK、MySQL、创建数据库 |
-| `start.sh` | 服务器 | 启动应用 |
-| `stop.sh` | 服务器 | 停止应用 |
-| `update.sh` | 本地开发机 | 完整更新流程 |
-| `backup.sh` | 服务器 | 备份 MySQL 数据 |
+| 脚本 | 位置 | 运行环境 | 用途 |
+|------|------|---------|------|
+| `build.sh` / `build.ps1` | `scripts/local/` | 本地 | 编译前端 + 打包 JAR |
+| `start.sh` | `scripts/server/` | 服务器 | 启动应用 |
+| `stop.sh` | `scripts/server/` | 服务器 | 停止应用 |
+| `backup.sh` | `scripts/server/` | 服务器 | MySQL 数据库备份 |
 
 ---
 
-### 日常更新流程
+### 日常更新/升级流程
 
 ```bash
-# 方式 1：全自动更新
-./update.sh
-
-# 方式 2：手动分步
 # 1. 本地重新构建
-./build.sh
+./scripts/local/build.sh
 
-# 2. 上传到服务器
-scp backend/target/personal-accounting-1.0.0.jar root@服务器IP:/opt/clear-books/
+# 2. 上传新的 JAR 到服务器（覆盖或保留旧版本）
+scp backend/target/personal-accounting-*.jar user@server:/opt/clear-books/
 
-# 3. SSH 到服务器重启
-ssh root@服务器IP "cd /opt/clear-books && ./stop.sh && ./start.sh"
+# 3. 服务器上重启
+ssh user@server "cd /opt/clear-books && ./stop.sh && ./start.sh"
 ```
 
 ---
@@ -222,8 +253,7 @@ ssh root@服务器IP "cd /opt/clear-books && ./stop.sh && ./start.sh"
 ### 服务器管理命令
 
 ```bash
-# SSH 登录服务器
-cd /opt/clear-books
+cd /opt/clear-books    # 进入部署目录
 
 # 启动应用
 ./start.sh
@@ -231,11 +261,29 @@ cd /opt/clear-books
 # 停止应用
 ./stop.sh
 
-# 查看日志
-tail -f logs/app.log
-
 # 查看运行状态
 ps aux | grep personal-accounting
+
+# 查看实时日志
+tail -f logs/app.log
+
+# 手动备份数据库
+./backup.sh
+```
+
+#### 配置定时自动备份
+
+设置每天凌晨2点自动备份数据库（保留最近7天）：
+
+```bash
+# 编辑 crontab
+crontab -e
+
+# 添加以下行
+0 2 * * * /opt/clear-books/backup.sh >> /opt/clear-books/logs/backup.log 2>&1
+
+# 验证设置
+crontab -l
 ```
 
 ---
@@ -247,22 +295,33 @@ ps aux | grep personal-accounting
 clear-books/
 ├── backend/
 │   └── target/
-│       └── personal-accounting-1.0.0.jar   # ← 生成的JAR
+│       └── personal-accounting-*.jar   # ← 生成的JAR
 ├── frontend/
-├── build.sh                                 # 本地构建
-└── update.sh                                # 更新脚本
+├── scripts/
+│   ├── local/
+│   │   ├── build.sh                    # Linux/Mac 构建
+│   │   └── build.ps1                   # Windows 构建
+│   └── server/
+│       ├── start.sh                    # 服务器启动脚本
+│       └── stop.sh                     # 服务器停止脚本
+├── .env                                # 环境变量配置
+└── .env.example                        # 配置模板
 ```
 
 **服务器：**
 ```
-/opt/clear-books/
-├── personal-accounting-1.0.0.jar   # ← JAR 包
-├── .env                            # 环境变量
-├── start.sh                        # 启动脚本
-├── stop.sh                         # 停止脚本
-├── logs/
-│   └── app.log                     # 应用日志
-└── backups/                        # 备份目录
+/opt/clear-books/                      # 部署目录（可自定义）
+├── personal-accounting-1.0.0.jar      # JAR 文件
+├── start.sh                           # 启动脚本
+├── stop.sh                            # 停止脚本
+├── backup.sh                          # 数据库备份脚本
+├── .env                               # 环境变量配置
+├── logs/                              # 日志目录（自动创建，保留7天）
+│   ├── app.log                        # 当前日志
+│   └── app.2024-01-15.log             # 历史日志（自动清理）
+├── backups/                           # 备份目录（自动创建，保留7天）
+│   └── backup_accounting_20240115_020000.sql.gz
+└── app.pid                            # 进程ID文件（运行时生成）
 ```
 
 ---
@@ -275,13 +334,25 @@ cd frontend
 npm install
 npm run build
 
-# 2. 复制到后端
+# 2. 复制到后端 static
 cp -r dist/* ../backend/src/main/resources/static/
 
 # 3. 构建 JAR
 cd ../backend
 mvn clean package -DskipTests
 ```
+
+---
+
+### 修改版本号
+
+编辑 `backend/pom.xml`：
+
+```xml
+<version>1.0.0</version>    <!-- 修改这里 -->
+```
+
+然后重新构建即可生成对应版本的 JAR 文件。
 
 ---
 
@@ -294,6 +365,34 @@ mysqldump -u root -p accounting > backup.sql
 # 恢复数据库
 mysql -u root -p accounting < backup.sql
 ```
+
+---
+
+### 常见问题排查
+
+#### 1. 更新系统图标/Logo 报错 "Data truncation: Data too long"
+
+**问题原因**：`system_settings` 表的 `setting_value` 字段默认为 VARCHAR(255)，无法存储 Base64 编码的图片数据。
+
+**解决方法**：
+
+```bash
+# 在服务器上执行修复脚本
+cd /opt/clear-books
+chmod +x scripts/server/fix-setting-value.sh
+./scripts/server/fix-setting-value.sh
+```
+
+或者手动执行 SQL：
+
+```sql
+ALTER TABLE system_settings MODIFY COLUMN setting_value TEXT;
+```
+
+**预防措施**：
+- 图标文件建议不超过 50KB
+- Logo 文件建议不超过 100KB
+- 使用 PNG 或 SVG 格式，避免 BMP 等大体积格式
 
 ---
 

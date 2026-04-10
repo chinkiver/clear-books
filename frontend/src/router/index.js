@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
 
 const routes = [
   {
@@ -53,7 +54,13 @@ const routes = [
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),
-        meta: { title: '系统设置' }
+        meta: { title: '个人信息' }
+      },
+      {
+        path: 'system-settings',
+        name: 'SystemSettings',
+        component: () => import('@/views/SystemSettings.vue'),
+        meta: { title: '系统设置', admin: true }
       }
     ]
   }
@@ -67,13 +74,30 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   
-  if (!to.meta.public && !userStore.isLoggedIn) {
-    next('/login')
-  } else if (to.path === '/login' && userStore.isLoggedIn) {
-    next('/')
-  } else {
-    next()
+  // 公开页面直接放行
+  if (to.meta.public) {
+    if (to.path === '/login' && userStore.isLoggedIn) {
+      next('/')
+    } else {
+      next()
+    }
+    return
   }
+  
+  // 检查登录状态
+  if (!userStore.isLoggedIn) {
+    next('/login')
+    return
+  }
+  
+  // 检查管理员权限
+  if (to.meta.admin && !userStore.isAdmin) {
+    ElMessage.error('您没有权限访问此页面')
+    next('/dashboard')
+    return
+  }
+  
+  next()
 })
 
 export default router

@@ -1,0 +1,1 @@
+import{r as e}from"./request-CzHxM1u2.js";const a=()=>e.get("/payment-methods"),m=t=>e.post("/payment-methods",t),d=(t,o)=>e.put(`/payment-methods/${t}`,o),n=t=>e.delete(`/payment-methods/${t}`);export{m as c,n as d,a as g,d as u};

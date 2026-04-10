@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 6173
 
 spring:
   application:
@@ -29,6 +29,18 @@ spring:
       path: /h2-console
       settings:
         web-allow-others: true
+
+  # 禁用 Redis 自动配置（我们在代码中手动配置）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+  # Redis Configuration (可选，手动配置)
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
 
 # JWT Configuration
 jwt:

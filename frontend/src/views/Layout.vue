@@ -3,8 +3,9 @@
     <!-- Header -->
     <el-header class="layout-header">
       <div class="logo">
-        <el-icon size="24"><Wallet /></el-icon>
-        <span class="logo-text">记账系统</span>
+        <img v-if="systemStore.hasLogo" :src="systemStore.logo" class="logo-img" alt="logo" />
+        <el-icon v-else size="24"><Wallet /></el-icon>
+        <span class="logo-text">{{ systemStore.systemName }}</span>
       </div>
       <div class="header-right">
         <el-dropdown @command="handleCommand">
@@ -14,8 +15,9 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="settings">系统设置</el-dropdown-item>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+              <el-dropdown-item v-if="userStore.isAdmin" command="system">系统设置</el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -72,13 +74,20 @@
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useSystemStore } from '@/stores/system'
 
 const router = useRouter()
 const userStore = useUserStore()
+const systemStore = useSystemStore()
+
+// 加载系统信息
+systemStore.loadPublicInfo()
 
 const handleCommand = (command) => {
-  if (command === 'settings') {
+  if (command === 'profile') {
     router.push('/settings')
+  } else if (command === 'system') {
+    router.push('/system-settings')
   } else if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       confirmButtonText: '确定',
@@ -114,6 +123,12 @@ const handleCommand = (command) => {
   align-items: center;
   gap: 10px;
   color: #409EFF;
+}
+
+.logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .logo-text {
