@@ -1,6 +1,5 @@
 # 个人记账系统主配置
 # 默认使用 dev 环境（MySQL + Redis），与生产环境保持一致
-# 如需使用 H2 内存数据库，添加 --spring.profiles.active=h2 参数
 
 spring:
   profiles:
@@ -11,7 +10,7 @@ spring:
     name: personal-accounting
 
 ---
-# 通用配置（所有环境共享）
+# 开发环境配置
 spring:
   config:
     activate:
@@ -19,14 +18,9 @@ spring:
   import: optional:file:.env[.properties]
 
 ---
+# 生产环境配置
 spring:
   config:
     activate:
       on-profile: prod
   import: optional:file:.env[.properties]
-
----
-spring:
-  config:
-    activate:
-      on-profile: h2

@@ -161,10 +161,6 @@ npm run dev
 在浏览器中打开 http://localhost:5173
 
 **提示：** 开发环境默认使用 `application-dev.yml`（MySQL + Redis），与生产环境保持一致。
-如需快速测试而不安装 MySQL，可使用 H2 内存数据库：
-```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=h2"
-```
 
 ---
 
