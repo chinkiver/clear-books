@@ -185,23 +185,27 @@ const handleSave = async () => {
 
   saving.value = true
   try {
+    // 使用 preview 值（包含已有图片和新上传的图片）
+    const logoValue = form.logoPreview || ''
+    const iconValue = form.iconPreview || ''
+    
     const settings = [
       { key: 'system.name', value: form.systemName.trim(), description: '系统名称' },
-      { key: 'system.logo', value: form.logo, description: '系统 Logo' },
-      { key: 'system.icon', value: form.icon, description: '网站图标' }
+      { key: 'system.logo', value: logoValue, description: '系统 Logo' },
+      { key: 'system.icon', value: iconValue, description: '网站图标' }
     ]
     
     await updateSettings(settings)
     
     // 更新本地状态
     systemStore.systemName = form.systemName.trim()
-    systemStore.logo = form.logo
-    systemStore.icon = form.icon
+    systemStore.logo = logoValue
+    systemStore.icon = iconValue
     
     // 更新页面标题和图标
     document.title = form.systemName.trim()
-    if (form.icon && systemStore.updateFavicon) {
-      systemStore.updateFavicon(form.icon)
+    if (iconValue && systemStore.updateFavicon) {
+      systemStore.updateFavicon(iconValue)
     }
     
     ElMessage.success('设置保存成功')
