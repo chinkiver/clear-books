@@ -112,9 +112,9 @@
         <div class="chart-header">
           <span>收支趋势对比</span>
           <el-radio-group v-model="trendGroupBy" size="small" @change="loadTrendData">
-            <el-radio-button label="DAY">按日</el-radio-button>
-            <el-radio-button label="WEEK">按周</el-radio-button>
-            <el-radio-button label="MONTH">按月</el-radio-button>
+            <el-radio-button value="DAY">按日</el-radio-button>
+            <el-radio-button value="WEEK">按周</el-radio-button>
+            <el-radio-button value="MONTH">按月</el-radio-button>
           </el-radio-group>
         </div>
       </template>
@@ -344,7 +344,7 @@ const formatNumber = (num) => {
 // 趋势分析数据
 const trendAnalysis = computed(() => {
   const expenseData = trendData.value.expense || []
-  const expenseCategories = expenseCategories.value || []
+  const categories = expenseCategories.value || []
   
   // 最大支出日
   let maxExpenseDate = ''
@@ -359,9 +359,9 @@ const trendAnalysis = computed(() => {
   // 最大支出分类
   let topCategory = ''
   let topCategoryPercent = 0
-  const totalExpense = expenseCategories.reduce((sum, c) => sum + Number(c.amount), 0)
-  if (expenseCategories.length > 0) {
-    const top = expenseCategories[0]
+  const totalExpense = categories.reduce((sum, c) => sum + Number(c.amount), 0)
+  if (categories.length > 0) {
+    const top = categories[0]
     topCategory = top.categoryName
     topCategoryPercent = totalExpense > 0 ? ((top.amount / totalExpense) * 100).toFixed(1) : 0
   }
