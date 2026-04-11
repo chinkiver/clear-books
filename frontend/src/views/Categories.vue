@@ -249,59 +249,59 @@ const initSortable = () => {
         return
       }
 
-      // 获取所有同级项目
-      const siblings = currentFlatList
-        .filter(item => item.level === movedItem.level && item.parentId === movedItem.parentId)
-      
-      // 从原位置移除
-      const movedIndex = siblings.findIndex(item => item.id === movedItem.id)
-      const [moved] = siblings.splice(movedIndex, 1)
-      
-      // 计算在新顺序中的位置
-      const targetIndex = targetItem 
-        ? siblings.findIndex(item => item.id === targetItem.id)
-        : siblings.length
-      
-      // 插入到新位置
-      if (targetIndex >= 0 && targetIndex < siblings.length) {
-        siblings.splice(targetIndex, 0, moved)
-      } else {
-        siblings.push(moved)
+      // 只处理一级分类的拖拽
+      if (movedItem.level !== 0) return
+
+      // 计算被移动父类的子类数量
+      const childrenCount = movedItem._children ? movedItem._children.length : 0
+      const groupSize = 1 + childrenCount // 父类 + 子类
+
+      // 提取整个组（父类 + 子类）
+      const movedGroup = currentFlatList.splice(oldIndex, groupSize)
+
+      // 计算插入位置
+      // 如果 oldIndex < newIndex，说明是向下移动，插入位置需要调整
+      // 因为前面已经移除了 groupSize 个元素
+      let insertIndex = newIndex
+      if (oldIndex < newIndex) {
+        insertIndex = newIndex - groupSize + 1
       }
 
-      // 如果是移动一级分类，需要同时移动其子分类
-      // 构建完整的排序列表（包含子分类）
-      const fullSortedList = []
-      siblings.forEach((sibling, index) => {
-        // 添加父分类
-        fullSortedList.push({ id: sibling.id, sortOrder: index })
-        
-        // 如果是一级分类，同时添加其子分类
-        if (sibling.level === 0 && sibling._children) {
-          sibling._children.forEach((child, childIndex) => {
-            fullSortedList.push({ 
-              id: child.id, 
-              sortOrder: index,  // 子分类使用父分类的 sortOrder
-              parentId: sibling.id 
-            })
-          })
+      // 将整组插入到新位置
+      currentFlatList.splice(insertIndex, 0, ...movedGroup)
+
+      // 重新构建父类排序列表
+      const parentList = []
+      const updateList = []
+      
+      for (let i = 0; i < currentFlatList.length; i++) {
+        const item = currentFlatList[i]
+        if (item.level === 0) {
+          parentList.push(item)
+          // 父类的 sortOrder 就是其在父类列表中的索引
+          updateList.push({ id: item.id, sortOrder: parentList.length - 1 })
+          
+          // 子类继承父类的 sortOrder
+          if (item._children) {
+            for (const child of item._children) {
+              updateList.push({ 
+                id: child.id, 
+                sortOrder: parentList.length - 1 
+              })
+            }
+          }
         }
-      })
+      }
 
       // 批量更新排序
       try {
-        for (const item of fullSortedList) {
+        for (const item of updateList) {
           const cat = categories.value.find(c => c.id === item.id)
-          if (cat) {
-            const updateData = { 
+          if (cat && cat.sortOrder !== item.sortOrder) {
+            await updateCategory(cat.id, { 
               ...cat, 
               sortOrder: item.sortOrder 
-            }
-            // 如果有 parentId，说明是子分类，更新其父ID
-            if (item.parentId !== undefined && cat.parentId !== item.parentId) {
-              updateData.parentId = item.parentId
-            }
-            await updateCategory(cat.id, updateData)
+            })
           }
         }
         ElMessage.success('排序已更新')
