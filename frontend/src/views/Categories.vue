@@ -188,11 +188,13 @@ const availableParents = computed(() => {
 const flattenCategories = (tree, level = 0, parent = null) => {
   const result = []
   for (const node of tree) {
-    // 保留 children 引用用于拖拽时获取子分类
-    const item = { ...node, level, parent }
+    // 解构出 children，避免 Element Plus 表格将其识别为树形数据导致重复显示
+    const { children, ...nodeWithoutChildren } = node
+    // 用 _children 保留引用供拖拽逻辑使用
+    const item = { ...nodeWithoutChildren, level, parent, _children: children }
     result.push(item)
-    if (node.children && node.children.length > 0) {
-      result.push(...flattenCategories(node.children, level + 1, node))
+    if (children && children.length > 0) {
+      result.push(...flattenCategories(children, level + 1, node))
     }
   }
   return result
@@ -273,8 +275,8 @@ const initSortable = () => {
         fullSortedList.push({ id: sibling.id, sortOrder: index })
         
         // 如果是一级分类，同时添加其子分类
-        if (sibling.level === 0 && sibling.children) {
-          sibling.children.forEach((child, childIndex) => {
+        if (sibling.level === 0 && sibling._children) {
+          sibling._children.forEach((child, childIndex) => {
             fullSortedList.push({ 
               id: child.id, 
               sortOrder: index,  // 子分类使用父分类的 sortOrder
@@ -368,7 +370,7 @@ const handleEdit = (row) => {
 }
 
 const handleDelete = (row) => {
-  const msg = row.children && row.children.length > 0 
+  const msg = row._children && row._children.length > 0 
     ? '该分类下有子分类，删除将同时删除所有子分类，确定要删除吗？'
     : '确定要删除该分类吗？'
   
