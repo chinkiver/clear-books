@@ -185,14 +185,14 @@ const availableParents = computed(() => {
 })
 
 // 将树形数据扁平化，并标记层级
-const flattenCategories = (tree, level = 0) => {
+const flattenCategories = (tree, level = 0, parent = null) => {
   const result = []
   for (const node of tree) {
-    // 移除 children 属性，避免 Element Plus 将其识别为树形表格
-    const { children, ...rest } = node
-    result.push({ ...rest, level })
-    if (children && children.length > 0) {
-      result.push(...flattenCategories(children, level + 1))
+    // 保留 children 引用用于拖拽时获取子分类
+    const item = { ...node, level, parent }
+    result.push(item)
+    if (node.children && node.children.length > 0) {
+      result.push(...flattenCategories(node.children, level + 1, node))
     }
   }
   return result
@@ -237,7 +237,6 @@ const initSortable = () => {
       
       if (!movedItem) return
 
-      // 简单策略：拖拽只改变同级内的顺序
       // 如果拖到不同层级，提示用户使用"调整层级"功能
       const targetItem = currentFlatList[newIndex]
       
@@ -246,40 +245,65 @@ const initSortable = () => {
         return
       }
 
-      // 同层级内排序：收集同级所有项目，重新排序
-      const siblingIds = currentFlatList
+      // 获取所有同级项目
+      const siblings = currentFlatList
         .filter(item => item.level === movedItem.level && item.parentId === movedItem.parentId)
-        .map(item => item.id)
-
+      
       // 从原位置移除
-      const movedId = siblingIds.splice(siblingIds.indexOf(movedItem.id), 1)[0]
+      const movedIndex = siblings.findIndex(item => item.id === movedItem.id)
+      const [moved] = siblings.splice(movedIndex, 1)
       
       // 计算在新顺序中的位置
-      const targetSiblingIndex = currentFlatList
-        .filter(item => item.level === movedItem.level && item.parentId === movedItem.parentId)
-        .findIndex(item => item.id === targetItem?.id)
+      const targetIndex = targetItem 
+        ? siblings.findIndex(item => item.id === targetItem.id)
+        : siblings.length
       
       // 插入到新位置
-      if (targetSiblingIndex >= 0) {
-        siblingIds.splice(targetSiblingIndex, 0, movedId)
+      if (targetIndex >= 0 && targetIndex < siblings.length) {
+        siblings.splice(targetIndex, 0, moved)
       } else {
-        siblingIds.push(movedId)
+        siblings.push(moved)
       }
 
-      // 逐个更新排序
-      try {
-        for (let i = 0; i < siblingIds.length; i++) {
-          const cat = categories.value.find(c => c.id === siblingIds[i])
-          if (cat) {
-            await updateCategory(cat.id, { 
-              ...cat, 
-              sortOrder: i 
+      // 如果是移动一级分类，需要同时移动其子分类
+      // 构建完整的排序列表（包含子分类）
+      const fullSortedList = []
+      siblings.forEach((sibling, index) => {
+        // 添加父分类
+        fullSortedList.push({ id: sibling.id, sortOrder: index })
+        
+        // 如果是一级分类，同时添加其子分类
+        if (sibling.level === 0 && sibling.children) {
+          sibling.children.forEach((child, childIndex) => {
+            fullSortedList.push({ 
+              id: child.id, 
+              sortOrder: index,  // 子分类使用父分类的 sortOrder
+              parentId: sibling.id 
             })
+          })
+        }
+      })
+
+      // 批量更新排序
+      try {
+        for (const item of fullSortedList) {
+          const cat = categories.value.find(c => c.id === item.id)
+          if (cat) {
+            const updateData = { 
+              ...cat, 
+              sortOrder: item.sortOrder 
+            }
+            // 如果有 parentId，说明是子分类，更新其父ID
+            if (item.parentId !== undefined && cat.parentId !== item.parentId) {
+              updateData.parentId = item.parentId
+            }
+            await updateCategory(cat.id, updateData)
           }
         }
         ElMessage.success('排序已更新')
         loadData()
       } catch (error) {
+        console.error('排序更新失败:', error)
         loadData()
       }
     }
