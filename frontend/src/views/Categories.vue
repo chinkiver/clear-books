@@ -27,8 +27,9 @@
           >
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column label="拖拽排序" width="80" align="center">
-              <template #default>
-                <el-icon class="drag-handle"><Rank /></el-icon>
+              <template #default="{ row }">
+                <el-icon v-if="row.level === 0" class="drag-handle"><Rank /></el-icon>
+                <span v-else class="drag-disabled">-</span>
               </template>
             </el-table-column>
             <el-table-column prop="name" label="名称" min-width="200">
@@ -62,8 +63,9 @@
           >
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column label="拖拽排序" width="80" align="center">
-              <template #default>
-                <el-icon class="drag-handle"><Rank /></el-icon>
+              <template #default="{ row }">
+                <el-icon v-if="row.level === 0" class="drag-handle"><Rank /></el-icon>
+                <span v-else class="drag-disabled">-</span>
               </template>
             </el-table-column>
             <el-table-column prop="name" label="名称" min-width="200">
@@ -438,6 +440,11 @@ onMounted(() => {
 
 .drag-handle:hover {
   color: #409EFF;
+}
+
+.drag-disabled {
+  color: #c0c4cc;
+  font-size: 14px;
 }
 
 .category-item {
