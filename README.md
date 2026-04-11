@@ -124,6 +124,12 @@ ssh user@server "crontab -l | { cat; echo \"0 2 * * * /opt/clear-books/backup.sh
 
 ### 开发环境快速开始
 
+**环境要求：**
+- JDK 17+
+- MySQL 8.0
+- Redis 6.0+（可选，推荐安装）
+- Node.js 18+
+
 ```bash
 # 1. 克隆项目
 git clone <repository-url>
@@ -131,9 +137,12 @@ cd clear-books
 
 # 2. 配置环境变量
 cp .env.example .env
-# 编辑 .env 填入数据库信息
+# 编辑 .env 填入你的 MySQL/Redis 配置
 
-# 3. 启动后端服务
+# 3. 创建 MySQL 数据库
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS accounting CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# 4. 启动后端服务
 cd backend
 # Windows
 mvnw spring-boot:run
@@ -143,13 +152,19 @@ mvnw spring-boot:run
 # 或使用已安装的 Maven
 mvn spring-boot:run
 
-# 4. 启动前端服务
+# 5. 启动前端服务
 cd ../frontend
 npm install
 npm run dev
 ```
 
 在浏览器中打开 http://localhost:5173
+
+**提示：** 开发环境默认使用 `application-dev.yml`（MySQL + Redis），与生产环境保持一致。
+如需快速测试而不安装 MySQL，可使用 H2 内存数据库：
+```bash
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=h2"
+```
 
 ---
 

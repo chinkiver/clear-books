@@ -1,58 +1,32 @@
-server:
-  port: 6173
+# 个人记账系统主配置
+# 默认使用 dev 环境（MySQL + Redis），与生产环境保持一致
+# 如需使用 H2 内存数据库，添加 --spring.profiles.active=h2 参数
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # 默认应用名称
   application:
     name: personal-accounting
 
-  # H2 Database Configuration
-  datasource:
-    url: jdbc:h2:file:./data/accountingdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+---
+# 通用配置（所有环境共享）
+spring:
+  config:
+    activate:
+      on-profile: dev
+  import: optional:file:.env[.properties]
 
-  # JPA Configuration
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  import: optional:file:.env[.properties]
 
-  # H2 Console Configuration
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
-
-  # 禁用 Redis 自动配置（我们在代码中手动配置）
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-
-  # Redis Configuration (可选，手动配置)
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
-    database: ${REDIS_DATABASE:0}
-
-# JWT Configuration
-jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-signing-must-be-at-least-32-characters}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
-
-# CORS Configuration
-cors:
-  allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-
-# Logging
-logging:
-  level:
-    com.accounting: DEBUG
-    org.springframework.security: DEBUG
+---
+spring:
+  config:
+    activate:
+      on-profile: h2
