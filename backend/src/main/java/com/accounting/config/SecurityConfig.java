@@ -52,6 +52,9 @@ public class SecurityConfig {
                 .antMatchers("/h2-console/**").permitAll()
                 .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .antMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/vite.svg").permitAll()
+                // 前端路由路径允许匿名访问（权限由前端路由守卫控制）
+                .antMatchers("/dashboard", "/transactions", "/accounts", "/categories", 
+                           "/payment-methods", "/statistics", "/settings", "/system-settings").permitAll()
                 .anyRequest().authenticated()
             .and()
             .authenticationProvider(authenticationProvider())

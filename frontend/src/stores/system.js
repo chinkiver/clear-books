@@ -20,11 +20,11 @@ export const useSystemStore = defineStore('system', () => {
    */
   const loadPublicInfo = async () => {
     try {
-      const res = await getPublicInfo()
-      if (res.data) {
-        systemName.value = res.data.systemName || 'Clear Books'
-        logo.value = res.data.logo || ''
-        icon.value = res.data.icon || ''
+      const data = await getPublicInfo()
+      if (data) {
+        systemName.value = data.systemName || 'Clear Books'
+        logo.value = data.logo || ''
+        icon.value = data.icon || ''
         
         // 更新页面标题
         document.title = systemName.value
@@ -45,31 +45,31 @@ export const useSystemStore = defineStore('system', () => {
    * 加载所有设置（管理员）
    */
   const loadAllSettings = async () => {
-    const res = await getAllSettings()
-    settings.value = res.data || []
+    const data = await getAllSettings()
+    settings.value = data || []
     return settings.value
   }
 
   /**
    * 更新单个设置
    */
-  const updateSystemSetting = async (data) => {
-    const res = await updateSetting(data)
+  const updateSystemSetting = async (settingData) => {
+    const result = await updateSetting(settingData)
     
     // 更新本地状态
-    if (data.key === 'system.name') {
-      systemName.value = data.value || 'Clear Books'
+    if (settingData.key === 'system.name') {
+      systemName.value = settingData.value || 'Clear Books'
       document.title = systemName.value
-    } else if (data.key === 'system.logo') {
-      logo.value = data.value || ''
-    } else if (data.key === 'system.icon') {
-      icon.value = data.value || ''
+    } else if (settingData.key === 'system.logo') {
+      logo.value = settingData.value || ''
+    } else if (settingData.key === 'system.icon') {
+      icon.value = settingData.value || ''
       if (icon.value) {
         updateFavicon(icon.value)
       }
     }
     
-    return res.data
+    return result
   }
 
   /**
@@ -118,6 +118,7 @@ export const useSystemStore = defineStore('system', () => {
     loadPublicInfo,
     loadAllSettings,
     updateSystemSetting,
-    updateSystemSettings
+    updateSystemSettings,
+    updateFavicon
   }
 })

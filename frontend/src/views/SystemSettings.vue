@@ -103,10 +103,17 @@ const form = reactive({
 })
 
 // 加载现有设置
-onMounted(() => {
+onMounted(async () => {
+  // 如果 store 未加载，先从服务器获取
+  if (!systemStore.loaded) {
+    await systemStore.loadPublicInfo()
+  }
+  
   form.systemName = systemStore.systemName
   form.logoPreview = systemStore.logo
   form.iconPreview = systemStore.icon
+  form.logo = systemStore.logo
+  form.icon = systemStore.icon
 })
 
 // 上传前检查 Logo

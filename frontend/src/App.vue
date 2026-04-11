@@ -2,6 +2,18 @@
   <router-view />
 </template>
 
+<script setup>
+import { onMounted } from 'vue'
+import { useSystemStore } from '@/stores/system'
+
+const systemStore = useSystemStore()
+
+// 应用启动时加载系统设置
+onMounted(() => {
+  systemStore.loadPublicInfo()
+})
+</script>
+
 <style>
 * {
   margin: 0;
