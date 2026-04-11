@@ -1,0 +1,1 @@
+import{r as c}from"./index-D-O8yqup.js";const o=()=>c.get("/accounts"),n=t=>c.post("/accounts",t),u=(t,s)=>c.put(`/accounts/${t}`,s),e=t=>c.delete(`/accounts/${t}`),p=(t,s)=>c.post(`/accounts/${t}/adjust`,null,{params:{amount:s}});export{p as a,n as c,e as d,o as g,u};
