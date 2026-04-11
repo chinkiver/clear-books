@@ -14,3 +14,25 @@ export const updateSetting = (data) => request.put('/settings', data)
 
 // 批量更新设置
 export const updateSettings = (data) => request.put('/settings/batch', data)
+
+// 上传 Logo 图片
+export const uploadLogo = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/files/logo', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+// 上传 Favicon 图标
+export const uploadIcon = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/files/icon', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

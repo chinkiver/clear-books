@@ -37,9 +37,11 @@ public class SystemSettingService {
      * 根据键名获取设置值
      */
     public String getSettingValue(String key, String defaultValue) {
-        return systemSettingRepository.findByKey(key)
+        String value = systemSettingRepository.findByKey(key)
                 .map(SystemSetting::getValue)
                 .orElse(defaultValue);
+
+        return value;
     }
 
     /**
@@ -73,10 +75,14 @@ public class SystemSettingService {
      * 获取公开的系统信息（不需要认证）
      */
     public SystemSettingDTO.PublicInfo getPublicInfo() {
+        String systemName = getSettingValue(KEY_SYSTEM_NAME, DEFAULT_SYSTEM_NAME);
+        String logo = getSettingValue(KEY_SYSTEM_LOGO, null);
+        String icon = getSettingValue(KEY_SYSTEM_ICON, null);
+
         return SystemSettingDTO.PublicInfo.builder()
-                .systemName(getSettingValue(KEY_SYSTEM_NAME, DEFAULT_SYSTEM_NAME))
-                .logo(getSettingValue(KEY_SYSTEM_LOGO, null))
-                .icon(getSettingValue(KEY_SYSTEM_ICON, null))
+                .systemName(systemName)
+                .logo(logo)
+                .icon(icon)
                 .build();
     }
 

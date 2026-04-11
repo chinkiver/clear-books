@@ -21,6 +21,7 @@ export const useSystemStore = defineStore('system', () => {
   const loadPublicInfo = async () => {
     try {
       const data = await getPublicInfo()
+      
       if (data) {
         systemName.value = data.systemName || 'Clear Books'
         logo.value = data.logo || ''
@@ -37,7 +38,7 @@ export const useSystemStore = defineStore('system', () => {
         loaded.value = true
       }
     } catch (error) {
-      console.error('Failed to load system info:', error)
+      console.error('[SystemStore] Failed to load system info:', error)
     }
   }
 

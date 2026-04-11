@@ -199,7 +199,7 @@
     <el-dialog v-model="quickAddCategoryVisible" title="新增分类" width="400px" destroy-on-close>
       <el-form ref="quickCategoryRef" :model="quickCategoryForm" :rules="quickCategoryRules" label-width="80px">
         <el-form-item label="类型" prop="type">
-          <el-radio-group v-model="quickCategoryForm.type">
+          <el-radio-group v-model="quickCategoryForm.type" @change="onQuickCategoryTypeChange">
             <el-radio-button value="EXPENSE">支出</el-radio-button>
             <el-radio-button value="INCOME">收入</el-radio-button>
           </el-radio-group>
@@ -207,8 +207,20 @@
         <el-form-item label="名称" prop="name">
           <el-input v-model="quickCategoryForm.name" placeholder="请输入分类名称" />
         </el-form-item>
-        <el-form-item label="图标">
-          <el-input v-model="quickCategoryForm.icon" placeholder="例如：🍔（可选）" />
+        <el-form-item label="父分类">
+          <el-select 
+            v-model="quickCategoryForm.parentId" 
+            placeholder="不选则为一级分类" 
+            clearable 
+            style="width: 100%"
+          >
+            <el-option
+              v-for="cat in parentCategoriesForQuickAdd"
+              :key="cat.id"
+              :label="cat.name"
+              :value="cat.id"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -254,7 +266,7 @@ const quickAddLoading = ref(false)
 
 // 快速新增表单
 const quickAccountForm = reactive({ name: '', type: 'BANK', balance: 0, color: '#409EFF' })
-const quickCategoryForm = reactive({ name: '', type: 'EXPENSE', icon: '', parentId: null, sortOrder: 0 })
+const quickCategoryForm = reactive({ name: '', type: 'EXPENSE', parentId: null, sortOrder: 0 })
 const quickPaymentMethodForm = reactive({ name: '', sortOrder: 0 })
 
 const quickAccountRef = ref()
@@ -328,6 +340,14 @@ const flattenCategories = (tree) => {
 const filteredCategories = computed(() => {
   const flatList = flattenCategories(categories.value)
   return flatList.filter(c => c.type === form.type)
+})
+
+// 快速新增分类时可用的一级分类选项
+const parentCategoriesForQuickAdd = computed(() => {
+  return categories.value.filter(c => 
+    c.type === quickCategoryForm.type && 
+    c.parentId === null
+  )
 })
 
 const formatAmount = (amount) => {
@@ -451,9 +471,13 @@ const submitQuickAccount = async () => {
 const openQuickAddCategory = () => {
   quickCategoryForm.name = ''
   quickCategoryForm.type = form.type === 'INCOME' ? 'INCOME' : 'EXPENSE'
-  quickCategoryForm.icon = ''
   quickCategoryForm.parentId = null
   quickAddCategoryVisible.value = true
+}
+
+// 当快速新增分类的类型改变时，清空已选择的父分类
+const onQuickCategoryTypeChange = () => {
+  quickCategoryForm.parentId = null
 }
 
 const submitQuickCategory = async () => {
@@ -464,7 +488,6 @@ const submitQuickCategory = async () => {
     const submitData = {
       name: quickCategoryForm.name,
       type: quickCategoryForm.type,
-      icon: quickCategoryForm.icon,
       parentId: quickCategoryForm.parentId,
       sortOrder: quickCategoryForm.sortOrder
     }

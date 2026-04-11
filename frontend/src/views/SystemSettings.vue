@@ -25,14 +25,14 @@
               :show-file-list="false"
               accept="image/png,image/jpeg,image/jpg,image/svg+xml"
             >
-              <img v-if="form.logoPreview" :src="form.logoPreview" class="logo-preview" />
+              <img v-if="logoPreview" :src="logoPreview" class="logo-preview" />
               <el-icon v-else class="logo-uploader-icon"><Plus /></el-icon>
             </el-upload>
             <div class="upload-tips">
               <p>建议尺寸: 32x32 或 64x64 像素</p>
               <p>支持格式: PNG, JPG, SVG</p>
               <p>最大大小: 100KB</p>
-              <el-button v-if="form.logoPreview" type="danger" link @click="clearLogo">清除</el-button>
+              <el-button v-if="logoPreview" type="danger" link @click="clearLogo">清除</el-button>
             </div>
           </div>
         </el-form-item>
@@ -49,14 +49,14 @@
               :show-file-list="false"
               accept="image/png,image/x-icon,image/vnd.microsoft.icon"
             >
-              <img v-if="form.iconPreview" :src="form.iconPreview" class="icon-preview" />
+              <img v-if="iconPreview" :src="iconPreview" class="icon-preview" />
               <el-icon v-else class="icon-uploader-icon"><Plus /></el-icon>
             </el-upload>
             <div class="upload-tips">
               <p>建议尺寸: 16x16 或 32x32 像素</p>
               <p>支持格式: PNG, ICO</p>
               <p>最大大小: 50KB</p>
-              <el-button v-if="form.iconPreview" type="danger" link @click="clearIcon">清除</el-button>
+              <el-button v-if="iconPreview" type="danger" link @click="clearIcon">清除</el-button>
             </div>
           </div>
         </el-form-item>
@@ -76,7 +76,7 @@
       </template>
       <div class="preview-content">
         <div class="preview-header">
-          <img v-if="form.logoPreview" :src="form.logoPreview" class="preview-logo" />
+          <img v-if="logoPreview" :src="logoPreview" class="preview-logo" />
           <el-icon v-else size="24"><Wallet /></el-icon>
           <span class="preview-title">{{ form.systemName || 'Clear Books' }}</span>
         </div>
@@ -89,18 +89,28 @@
 import { reactive, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useSystemStore } from '@/stores/system'
-import { updateSettings } from '@/api/settings'
+import { updateSettings, uploadLogo, uploadIcon } from '@/api/settings'
 
 const systemStore = useSystemStore()
 const saving = ref(false)
+const uploadingLogo = ref(false)
+const uploadingIcon = ref(false)
 
 const form = reactive({
-  systemName: '',
-  logo: '',
-  logoPreview: '',
-  icon: '',
-  iconPreview: ''
+  systemName: ''
 })
+
+// 图片预览（从 store 加载的 URL 或新上传的预览）
+const logoPreview = ref('')
+const iconPreview = ref('')
+
+// 是否有新选择的文件待上传
+const newLogoFile = ref(null)
+const newIconFile = ref(null)
+
+// 从服务器加载的设置（用于判断是否变更）
+const serverLogoUrl = ref('')
+const serverIconUrl = ref('')
 
 // 加载现有设置
 onMounted(async () => {
@@ -110,10 +120,12 @@ onMounted(async () => {
   }
   
   form.systemName = systemStore.systemName
-  form.logoPreview = systemStore.logo
-  form.iconPreview = systemStore.icon
-  form.logo = systemStore.logo
-  form.icon = systemStore.icon
+  logoPreview.value = systemStore.logo || ''
+  iconPreview.value = systemStore.icon || ''
+  
+  // 保存服务器返回的 URL
+  serverLogoUrl.value = systemStore.logo || ''
+  serverIconUrl.value = systemStore.icon || ''
 })
 
 // 上传前检查 Logo
@@ -136,44 +148,52 @@ const beforeIconUpload = (rawFile) => {
   return true
 }
 
-// 处理 Logo 上传
+// 处理 Logo 选择（不上传，只预览）
 const handleLogoChange = (file) => {
-  // 再次检查文件大小
   if (!beforeLogoUpload(file.raw)) {
     return
   }
+  
+  // 创建本地预览
   const reader = new FileReader()
   reader.onload = (e) => {
-    form.logo = e.target.result
-    form.logoPreview = e.target.result
+    logoPreview.value = e.target.result
   }
   reader.readAsDataURL(file.raw)
+  
+  // 保存文件，等待保存时上传
+  newLogoFile.value = file.raw
 }
 
-// 处理 Icon 上传
+// 处理 Icon 选择（不上传，只预览）
 const handleIconChange = (file) => {
-  // 再次检查文件大小
   if (!beforeIconUpload(file.raw)) {
     return
   }
+  
+  // 创建本地预览
   const reader = new FileReader()
   reader.onload = (e) => {
-    form.icon = e.target.result
-    form.iconPreview = e.target.result
+    iconPreview.value = e.target.result
   }
   reader.readAsDataURL(file.raw)
+  
+  // 保存文件，等待保存时上传
+  newIconFile.value = file.raw
 }
 
 // 清除 Logo
 const clearLogo = () => {
-  form.logo = ''
-  form.logoPreview = ''
+  logoPreview.value = ''
+  newLogoFile.value = null
+  serverLogoUrl.value = ''
 }
 
 // 清除 Icon
 const clearIcon = () => {
-  form.icon = ''
-  form.iconPreview = ''
+  iconPreview.value = ''
+  newIconFile.value = null
+  serverIconUrl.value = ''
 }
 
 // 保存设置
@@ -184,45 +204,80 @@ const handleSave = async () => {
   }
 
   saving.value = true
+  let logoUrl = serverLogoUrl.value
+  let iconUrl = serverIconUrl.value
+  
   try {
-    // 使用 preview 值（包含已有图片和新上传的图片）
-    const logoValue = form.logoPreview || ''
-    const iconValue = form.iconPreview || ''
+    // 1. 如果有新 Logo，先上传
+    if (newLogoFile.value) {
+      uploadingLogo.value = true
+      const logoResult = await uploadLogo(newLogoFile.value)
+      logoUrl = logoResult.url
+      uploadingLogo.value = false
+    }
     
+    // 2. 如果有新 Icon，先上传
+    if (newIconFile.value) {
+      uploadingIcon.value = true
+      const iconResult = await uploadIcon(newIconFile.value)
+      iconUrl = iconResult.url
+      uploadingIcon.value = false
+    }
+    
+    // 3. 保存设置到数据库（只存 URL）
     const settings = [
       { key: 'system.name', value: form.systemName.trim(), description: '系统名称' },
-      { key: 'system.logo', value: logoValue, description: '系统 Logo' },
-      { key: 'system.icon', value: iconValue, description: '网站图标' }
+      { key: 'system.logo', value: logoUrl, description: '系统 Logo URL' },
+      { key: 'system.icon', value: iconUrl, description: '网站图标 URL' }
     ]
     
     await updateSettings(settings)
     
-    // 更新本地状态
+    // 4. 更新本地状态
     systemStore.systemName = form.systemName.trim()
-    systemStore.logo = logoValue
-    systemStore.icon = iconValue
+    systemStore.logo = logoUrl
+    systemStore.icon = iconUrl
+    
+    // 更新预览为服务器 URL（这样刷新后也是同样的 URL）
+    if (logoUrl) {
+      logoPreview.value = logoUrl
+    }
+    if (iconUrl) {
+      iconPreview.value = iconUrl
+    }
+    
+    // 清空待上传文件标记
+    newLogoFile.value = null
+    newIconFile.value = null
+    serverLogoUrl.value = logoUrl
+    serverIconUrl.value = iconUrl
     
     // 更新页面标题和图标
     document.title = form.systemName.trim()
-    if (iconValue && systemStore.updateFavicon) {
-      systemStore.updateFavicon(iconValue)
+    if (iconUrl && systemStore.updateFavicon) {
+      systemStore.updateFavicon(iconUrl)
     }
     
     ElMessage.success('设置保存成功')
   } catch (error) {
+    console.error('Save failed:', error)
     ElMessage.error('保存失败: ' + (error.message || '未知错误'))
   } finally {
     saving.value = false
+    uploadingLogo.value = false
+    uploadingIcon.value = false
   }
 }
 
 // 重置
 const handleReset = () => {
   form.systemName = systemStore.systemName
-  form.logoPreview = systemStore.logo
-  form.iconPreview = systemStore.icon
-  form.logo = systemStore.logo
-  form.icon = systemStore.icon
+  logoPreview.value = systemStore.logo || ''
+  iconPreview.value = systemStore.icon || ''
+  newLogoFile.value = null
+  newIconFile.value = null
+  serverLogoUrl.value = systemStore.logo || ''
+  serverIconUrl.value = systemStore.icon || ''
   ElMessage.info('已重置为当前设置')
 }
 </script>

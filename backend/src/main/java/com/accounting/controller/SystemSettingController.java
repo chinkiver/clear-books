@@ -78,7 +78,7 @@ public class SystemSettingController {
     @GetMapping("/system-name")
     public ApiResponse<Map<String, String>> getSystemName() {
         String name = systemSettingService.getSettingValue(
-                SystemSettingService.KEY_SYSTEM_NAME, 
+                SystemSettingService.KEY_SYSTEM_NAME,
                 SystemSettingService.DEFAULT_SYSTEM_NAME);
         Map<String, String> result = new HashMap<>();
         result.put("name", name);
