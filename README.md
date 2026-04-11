@@ -29,6 +29,8 @@ A personal accounting system based on Spring Boot + Vue3 + MySQL, helping you re
 - **Transaction Records**: Record detailed information for each transaction
 - **Quick Add**: Quickly add accounts/categories/payment methods during transaction entry
 - **Statistics & Reports**: Weekly, monthly, quarterly, and yearly statistics with charts
+  - Weekday vs Weekend spending analysis
+  - Monthly expense forecast (predict end-of-month total based on daily average)
 - **Multi-user Support**: Support for multiple user registration and login
 
 ### Tech Stack
@@ -106,6 +108,8 @@ ssh user@server "crontab -l | { cat; echo \"0 2 * * * /opt/clear-books/backup.sh
 - **每日流水**：记录每笔交易的详细信息，支持收入、支出、转账三种类型
 - **快速添加**：录入流水时可直接在弹窗中快速添加账户、分类、支付方式
 - **统计报表**：按周、月、季度、年统计收支情况，支持图表展示
+  - 工作日 vs 周末消费分析
+  - 本月支出智能预测（基于日均消费预测月末总支出）
 - **多用户支持**：支持多用户注册和登录，数据相互隔离
 
 ### 技术架构
