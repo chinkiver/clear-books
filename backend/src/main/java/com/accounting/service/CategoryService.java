@@ -31,7 +31,8 @@ public class CategoryService {
         } else {
             categories = categoryRepository.findByUserId(userId).stream()
                     .filter(c -> c.getIsActive() != null && c.getIsActive())
-                    .sorted(Comparator.comparing(c -> c.getSortOrder() != null ? c.getSortOrder() : 0))
+                    .sorted(Comparator.comparing(Category::getSortOrder, 
+                            Comparator.nullsLast(Comparator.naturalOrder())))
                     .collect(Collectors.toList());
         }
         
@@ -70,8 +71,9 @@ public class CategoryService {
             }
         }
         
-        // 按sortOrder排序
-        rootCategories.sort(Comparator.comparing(c -> c.getSortOrder() != null ? c.getSortOrder() : 0));
+        // 按sortOrder排序（null值排在最后）
+        rootCategories.sort(Comparator.comparing(CategoryDto::getSortOrder, 
+                Comparator.nullsLast(Comparator.naturalOrder())));
         
         return rootCategories;
     }
