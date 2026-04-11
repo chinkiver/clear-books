@@ -279,12 +279,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, PieChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent, MarkLineComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import dayjs from 'dayjs'
 import { getTrend, getByCategory, getBalance, getWeekdayAnalysis, getExpenseForecast } from '@/api/statistics'
 
-echarts.use([CanvasRenderer, LineChart, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent])
+echarts.use([CanvasRenderer, LineChart, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent, MarkLineComponent])
 
 const dateRange = ref([])
 const trendGroupBy = ref('DAY')
