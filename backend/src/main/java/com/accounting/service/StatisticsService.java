@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.accounting.dto.ExpenseForecastDto;
 import com.accounting.dto.WeekdayAnalysisDto;
 
 import java.math.BigDecimal;
@@ -422,5 +423,187 @@ public class StatisticsService {
         }
         
         return insight.toString();
+    }
+    
+    /**
+     * 获取本月支出预测
+     */
+    @Transactional(readOnly = true)
+    public ExpenseForecastDto getExpenseForecast() {
+        Long userId = userService.getCurrentUserId();
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+        
+        int totalDays = today.lengthOfMonth();
+        int passedDays = today.getDayOfMonth();
+        int remainingDays = totalDays - passedDays;
+        
+        // 本月已产生的支出
+        BigDecimal actualExpense = transactionRepository.sumAmountByTypeAndDateRange(
+                userId, "EXPENSE", monthStart, today);
+        if (actualExpense == null) actualExpense = BigDecimal.ZERO;
+        
+        // 计算日均支出
+        BigDecimal dailyAverage = passedDays > 0 
+                ? actualExpense.divide(new BigDecimal(passedDays), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        
+        // 预测本月总支出
+        BigDecimal forecastExpense = actualExpense.add(
+                dailyAverage.multiply(new BigDecimal(remainingDays)));
+        
+        // 预测范围（考虑波动）
+        BigDecimal forecastRangeLow = actualExpense.add(
+                dailyAverage.multiply(new BigDecimal("0.8")).multiply(new BigDecimal(remainingDays)));
+        BigDecimal forecastRangeHigh = actualExpense.add(
+                dailyAverage.multiply(new BigDecimal("1.2")).multiply(new BigDecimal(remainingDays)));
+        
+        // 获取上月数据
+        LocalDate lastMonthStart = monthStart.minusMonths(1);
+        LocalDate lastMonthEnd = lastMonthStart.withDayOfMonth(lastMonthStart.lengthOfMonth());
+        LocalDate lastMonthToday = lastMonthStart.plusDays(passedDays - 1);
+        
+        BigDecimal lastMonthExpense = transactionRepository.sumAmountByTypeAndDateRange(
+                userId, "EXPENSE", lastMonthStart, lastMonthToday);
+        BigDecimal lastMonthTotal = transactionRepository.sumAmountByTypeAndDateRange(
+                userId, "EXPENSE", lastMonthStart, lastMonthEnd);
+        if (lastMonthExpense == null) lastMonthExpense = BigDecimal.ZERO;
+        if (lastMonthTotal == null) lastMonthTotal = BigDecimal.ZERO;
+        
+        // 获取近3个月平均支出
+        BigDecimal avgMonthlyExpense = calculateAvgMonthlyExpense(userId, 3);
+        
+        // 生成每日预测数据（用于图表）
+        List<ExpenseForecastDto.DailyForecast> dailyForecasts = generateDailyForecasts(
+                userId, monthStart, monthEnd, today, dailyAverage);
+        
+        // 评估状态
+        String status;
+        String statusText;
+        String suggestion;
+        
+        if (dailyAverage.compareTo(BigDecimal.ZERO) == 0) {
+            status = "NORMAL";
+            statusText = "暂无数据";
+            suggestion = "开始记账后，系统会为您预测本月支出。";
+        } else {
+            // 对比上月同期
+            double ratio = lastMonthExpense.compareTo(BigDecimal.ZERO) > 0
+                    ? actualExpense.doubleValue() / lastMonthExpense.doubleValue()
+                    : 1.0;
+            
+            if (ratio > 1.3) {
+                status = "DANGER";
+                statusText = "支出过高";
+                suggestion = "本月支出比上月同期高 " + String.format("%.0f", (ratio - 1) * 100) + 
+                        "%，建议控制消费。预计本月将支出 ¥" + forecastExpense.intValue() + "。";
+            } else if (ratio > 1.1) {
+                status = "WARNING";
+                statusText = "支出偏快";
+                suggestion = "本月支出比上月同期高 " + String.format("%.0f", (ratio - 1) * 100) + 
+                        "%，注意预算控制。";
+            } else if (ratio < 0.8) {
+                status = "GOOD";
+                statusText = "节省模式";
+                suggestion = "本月支出比上月同期低 " + String.format("%.0f", (1 - ratio) * 100) + 
+                        "%，继续保持！";
+            } else {
+                status = "NORMAL";
+                statusText = "支出正常";
+                suggestion = "本月支出节奏与上月相当，按当前趋势预计总支出 ¥" + forecastExpense.intValue() + "。";
+            }
+        }
+        
+        return ExpenseForecastDto.builder()
+                .currentMonth(today.format(DateTimeFormatter.ofPattern("yyyy-MM")))
+                .totalDays(totalDays)
+                .passedDays(passedDays)
+                .remainingDays(remainingDays)
+                .actualExpense(actualExpense)
+                .dailyAverage(dailyAverage)
+                .forecastExpense(forecastExpense)
+                .forecastRangeLow(forecastRangeLow)
+                .forecastRangeHigh(forecastRangeHigh)
+                .lastMonthExpense(lastMonthExpense)
+                .lastMonthTotal(lastMonthTotal)
+                .avgMonthlyExpense(avgMonthlyExpense)
+                .status(status)
+                .statusText(statusText)
+                .suggestion(suggestion)
+                .dailyForecasts(dailyForecasts)
+                .build();
+    }
+    
+    /**
+     * 计算近N个月平均支出
+     */
+    private BigDecimal calculateAvgMonthlyExpense(Long userId, int months) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusMonths(months);
+        
+        BigDecimal total = BigDecimal.ZERO;
+        int validMonths = 0;
+        
+        for (int i = 0; i < months; i++) {
+            LocalDate monthStart = endDate.minusMonths(i).withDayOfMonth(1);
+            LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
+            
+            BigDecimal monthExpense = transactionRepository.sumAmountByTypeAndDateRange(
+                    userId, "EXPENSE", monthStart, monthEnd);
+            if (monthExpense != null && monthExpense.compareTo(BigDecimal.ZERO) > 0) {
+                total = total.add(monthExpense);
+                validMonths++;
+            }
+        }
+        
+        return validMonths > 0 
+                ? total.divide(new BigDecimal(validMonths), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+    }
+    
+    /**
+     * 生成每日预测数据
+     */
+    private List<ExpenseForecastDto.DailyForecast> generateDailyForecasts(
+            Long userId, LocalDate monthStart, LocalDate monthEnd, 
+            LocalDate today, BigDecimal dailyAverage) {
+        
+        List<ExpenseForecastDto.DailyForecast> forecasts = new ArrayList<>();
+        BigDecimal cumulative = BigDecimal.ZERO;
+        
+        LocalDate current = monthStart;
+        while (!current.isAfter(monthEnd)) {
+            boolean isPassed = current.isBefore(today);
+            boolean isToday = current.equals(today);
+            
+            BigDecimal actual = BigDecimal.ZERO;
+            BigDecimal forecast = BigDecimal.ZERO;
+            
+            if (isPassed || isToday) {
+                // 已过日期，查询实际支出
+                actual = transactionRepository.sumAmountByTypeAndDateRange(
+                        userId, "EXPENSE", current, current);
+                if (actual == null) actual = BigDecimal.ZERO;
+                cumulative = cumulative.add(actual);
+            } else {
+                // 未来日期，使用预测值
+                forecast = dailyAverage;
+                cumulative = cumulative.add(forecast);
+            }
+            
+            forecasts.add(ExpenseForecastDto.DailyForecast.builder()
+                    .date(current)
+                    .actual(actual)
+                    .forecast(forecast)
+                    .cumulative(cumulative)
+                    .isPassed(isPassed)
+                    .isToday(isToday)
+                    .build());
+            
+            current = current.plusDays(1);
+        }
+        
+        return forecasts;
     }
 }

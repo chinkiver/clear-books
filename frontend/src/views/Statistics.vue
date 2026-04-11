@@ -48,6 +48,64 @@
       </el-col>
     </el-row>
 
+    <!-- 本月支出预测 -->
+    <el-card class="forecast-card" v-if="expenseForecast.currentMonth">
+      <template #header>
+        <div class="chart-header">
+          <span>
+            <el-icon><TrendCharts /></el-icon>
+            {{ expenseForecast.currentMonth }} 支出预测
+          </span>
+          <el-tag :type="getForecastStatusType(expenseForecast.status)" size="small">
+            {{ expenseForecast.statusText }}
+          </el-tag>
+        </div>
+      </template>
+      <el-row :gutter="20">
+        <el-col :span="16">
+          <div class="chart-container" style="height: 280px;">
+            <v-chart class="chart" :option="forecastChartOption" autoresize />
+          </div>
+        </el-col>
+        <el-col :span="8">
+          <div class="forecast-summary">
+            <div class="forecast-item">
+              <div class="forecast-label">本月已过</div>
+              <div class="forecast-value">{{ expenseForecast.passedDays }}/{{ expenseForecast.totalDays }} 天</div>
+              <el-progress :percentage="Math.round(expenseForecast.passedDays / expenseForecast.totalDays * 100)" :show-text="false" :stroke-width="8" color="#409EFF" />
+            </div>
+            <div class="forecast-item">
+              <div class="forecast-label">当前支出</div>
+              <div class="forecast-value expense">¥ {{ formatNumber(expenseForecast.actualExpense) }}</div>
+            </div>
+            <div class="forecast-item">
+              <div class="forecast-label">日均支出</div>
+              <div class="forecast-value">¥ {{ formatNumber(expenseForecast.dailyAverage) }}</div>
+            </div>
+            <div class="forecast-item">
+              <div class="forecast-label">预计总支出</div>
+              <div class="forecast-value warning">¥ {{ formatNumber(expenseForecast.forecastExpense) }}</div>
+              <div class="forecast-range">
+                区间: ¥{{ formatNumber(expenseForecast.forecastRangeLow) }} - ¥{{ formatNumber(expenseForecast.forecastRangeHigh) }}
+              </div>
+            </div>
+            <div class="forecast-item" v-if="expenseForecast.lastMonthTotal > 0">
+              <div class="forecast-label">上月总支出</div>
+              <div class="forecast-value">¥ {{ formatNumber(expenseForecast.lastMonthTotal) }}</div>
+              <div class="forecast-compare" :class="getForecastCompareClass()">
+                {{ getForecastCompareText() }}
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+      <el-divider />
+      <div class="forecast-suggestion">
+        <el-icon class="suggestion-icon"><InfoFilled /></el-icon>
+        <span>{{ expenseForecast.suggestion }}</span>
+      </div>
+    </el-card>
+
     <!-- 收支趋势 -->
     <el-card class="chart-card">
       <template #header>
@@ -224,7 +282,7 @@ import { LineChart, PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import dayjs from 'dayjs'
-import { getTrend, getByCategory, getBalance, getWeekdayAnalysis } from '@/api/statistics'
+import { getTrend, getByCategory, getBalance, getWeekdayAnalysis, getExpenseForecast } from '@/api/statistics'
 
 echarts.use([CanvasRenderer, LineChart, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent])
 
@@ -233,6 +291,24 @@ const trendGroupBy = ref('DAY')
 const trendData = ref({ expense: [], income: [] })
 const expenseCategories = ref([])
 const incomeCategories = ref([])
+const expenseForecast = ref({
+  currentMonth: '',
+  totalDays: 0,
+  passedDays: 0,
+  remainingDays: 0,
+  actualExpense: 0,
+  dailyAverage: 0,
+  forecastExpense: 0,
+  forecastRangeLow: 0,
+  forecastRangeHigh: 0,
+  lastMonthExpense: 0,
+  lastMonthTotal: 0,
+  avgMonthlyExpense: 0,
+  status: 'NORMAL',
+  statusText: '正常',
+  suggestion: '',
+  dailyForecasts: []
+})
 const weekdayAnalysis = ref({
   weekdayExpense: 0,
   weekendExpense: 0,
@@ -647,8 +723,133 @@ const weekdayOption = computed(() => {
   }
 })
 
+// 加载支出预测
+const loadExpenseForecast = async () => {
+  const res = await getExpenseForecast()
+  expenseForecast.value = res
+}
+
+// 获取预测状态样式
+const getForecastStatusType = (status) => {
+  const typeMap = {
+    'NORMAL': 'info',
+    'GOOD': 'success',
+    'WARNING': 'warning',
+    'DANGER': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+// 获取预测对比样式
+const getForecastCompareClass = () => {
+  const forecast = expenseForecast.value.forecastExpense
+  const lastMonth = expenseForecast.value.lastMonthTotal
+  if (!forecast || !lastMonth) return ''
+  const ratio = forecast / lastMonth
+  if (ratio > 1.1) return 'danger'
+  if (ratio < 0.9) return 'good'
+  return 'normal'
+}
+
+// 获取预测对比文字
+const getForecastCompareText = () => {
+  const forecast = expenseForecast.value.forecastExpense
+  const lastMonth = expenseForecast.value.lastMonthTotal
+  if (!forecast || !lastMonth) return ''
+  const diff = ((forecast - lastMonth) / lastMonth * 100).toFixed(0)
+  if (diff > 0) return `比上月预计多 ${diff}%`
+  if (diff < 0) return `比上月预计少 ${Math.abs(diff)}%`
+  return '与上月持平'
+}
+
+// 预测趋势图配置
+const forecastChartOption = computed(() => {
+  const dailyForecasts = expenseForecast.value.dailyForecasts || []
+  const dates = dailyForecasts.map(d => d.date.substring(5)) // 只显示 MM-DD
+  const actualData = dailyForecasts.map(d => d.actual > 0 ? d.actual : null)
+  const forecastData = dailyForecasts.map(d => d.forecast > 0 ? d.forecast : null)
+  const cumulativeData = dailyForecasts.map(d => d.cumulative)
+  
+  // 找到今天的索引
+  const todayIndex = dailyForecasts.findIndex(d => d.isToday)
+  
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['实际支出', '预测支出', '累计支出'],
+      top: 0
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLabel: {
+        interval: Math.floor(dates.length / 6),
+        formatter: (value) => value
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '日支出',
+        position: 'left',
+        axisLabel: { formatter: '¥{value}' }
+      },
+      {
+        type: 'value',
+        name: '累计',
+        position: 'right',
+        axisLabel: { formatter: '¥{value}' }
+      }
+    ],
+    series: [
+      {
+        name: '实际支出',
+        type: 'bar',
+        data: actualData,
+        itemStyle: { color: '#409EFF' },
+        barMaxWidth: 12
+      },
+      {
+        name: '预测支出',
+        type: 'bar',
+        data: forecastData,
+        itemStyle: { color: 'rgba(64, 158, 255, 0.3)' },
+        barMaxWidth: 12
+      },
+      {
+        name: '累计支出',
+        type: 'line',
+        yAxisIndex: 1,
+        data: cumulativeData,
+        smooth: true,
+        itemStyle: { color: '#F56C6C' },
+        lineStyle: { width: 2 }
+      }
+    ],
+    // 标记今天
+    markLine: todayIndex >= 0 ? {
+      silent: true,
+      data: [{
+        xAxis: todayIndex,
+        lineStyle: { color: '#E6A23C', type: 'dashed' },
+        label: { formatter: '今天', position: 'end' }
+      }]
+    } : undefined
+  }
+})
+
 const loadData = async () => {
-  await Promise.all([loadTrendData(), loadCategoryData(), loadSummaryData(), loadWeekdayAnalysis()])
+  await Promise.all([loadTrendData(), loadCategoryData(), loadSummaryData(), loadWeekdayAnalysis(), loadExpenseForecast()])
 }
 
 onMounted(() => {
@@ -788,6 +989,77 @@ onMounted(() => {
 .stable-normal { color: #E6A23C; }
 .stable-warning { color: #F56C6C; }
 .stable-bad { color: #F56C6C; font-weight: bold; }
+
+.forecast-card {
+  margin-bottom: 20px;
+}
+
+.forecast-summary {
+  padding: 10px;
+}
+
+.forecast-item {
+  margin-bottom: 16px;
+}
+
+.forecast-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.forecast-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.forecast-value.expense {
+  color: #409EFF;
+}
+
+.forecast-value.warning {
+  color: #E6A23C;
+}
+
+.forecast-range {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.forecast-compare {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.forecast-compare.danger {
+  color: #F56C6C;
+}
+
+.forecast-compare.good {
+  color: #67C23A;
+}
+
+.forecast-compare.normal {
+  color: #909399;
+}
+
+.forecast-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.suggestion-icon {
+  color: #E6A23C;
+  font-size: 16px;
+}
 
 .weekday-analysis-container {
   height: 350px;

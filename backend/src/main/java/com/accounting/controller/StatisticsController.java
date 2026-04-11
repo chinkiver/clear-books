@@ -1,6 +1,7 @@
 package com.accounting.controller;
 
 import com.accounting.dto.ApiResponse;
+import com.accounting.dto.ExpenseForecastDto;
 import com.accounting.dto.StatisticsSummaryDto;
 import com.accounting.dto.StatisticsTrendDto;
 import com.accounting.dto.WeekdayAnalysisDto;
@@ -67,5 +68,11 @@ public class StatisticsController {
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate) {
         return ApiResponse.success(statisticsService.getWeekdayAnalysis(startDate, endDate));
+    }
+    
+    @GetMapping("/expense-forecast")
+    @Operation(summary = "本月支出预测")
+    public ApiResponse<ExpenseForecastDto> expenseForecast() {
+        return ApiResponse.success(statisticsService.getExpenseForecast());
     }
 }
