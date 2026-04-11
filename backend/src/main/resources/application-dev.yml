@@ -3,7 +3,7 @@ spring:
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:accounting}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER:accounting}
-    password: ${MYSQL_PASSWORD:}
+    password: ${MYSQL_PASSWORD:ClearBooksDB2024!}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
