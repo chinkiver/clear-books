@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.accounting.dto.WeekdayAnalysisDto;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -213,5 +215,212 @@ public class StatisticsService {
         summaries.sort((a, b) -> b.getAmount().compareTo(a.getAmount()));
         
         return summaries;
+    }
+
+    /**
+     * 工作日 vs 周末消费分析
+     */
+    @Transactional(readOnly = true)
+    public WeekdayAnalysisDto getWeekdayAnalysis(LocalDate startDate, LocalDate endDate) {
+        Long userId = userService.getCurrentUserId();
+        
+        // 获取日期范围内的所有交易
+        List<Transaction> transactions = transactionRepository
+                .findByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(userId, startDate, endDate);
+        
+        // 按星期几分组统计
+        Map<Integer, WeekdayAnalysisDto.DayDetail> dayStats = new LinkedHashMap<>();
+        String[] dayNames = {"", "周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+        
+        // 初始化每天的统计
+        for (int i = 1; i <= 7; i++) {
+            dayStats.put(i, WeekdayAnalysisDto.DayDetail.builder()
+                    .dayOfWeek(dayNames[i])
+                    .dayNumber(i)
+                    .expense(BigDecimal.ZERO)
+                    .income(BigDecimal.ZERO)
+                    .transactionCount(0)
+                    .isWeekend(i >= 6)
+                    .build());
+        }
+        
+        // 统计实际有交易的天数
+        Set<LocalDate> weekdayDates = new HashSet<>();
+        Set<LocalDate> weekendDates = new HashSet<>();
+        
+        for (Transaction t : transactions) {
+            int dayOfWeek = t.getTransactionDate().getDayOfWeek().getValue();
+            WeekdayAnalysisDto.DayDetail detail = dayStats.get(dayOfWeek);
+            
+            if ("EXPENSE".equals(t.getType())) {
+                detail.setExpense(detail.getExpense().add(t.getAmount()));
+            } else if ("INCOME".equals(t.getType())) {
+                detail.setIncome(detail.getIncome().add(t.getAmount()));
+            }
+            detail.setTransactionCount(detail.getTransactionCount() + 1);
+            
+            // 记录有交易的具体日期
+            if (dayOfWeek >= 6) {
+                weekendDates.add(t.getTransactionDate());
+            } else {
+                weekdayDates.add(t.getTransactionDate());
+            }
+        }
+        
+        // 如果没有交易数据，计算日期范围内的所有天数
+        if (weekdayDates.isEmpty() && weekendDates.isEmpty()) {
+            LocalDate current = startDate;
+            while (!current.isAfter(endDate)) {
+                int dayOfWeek = current.getDayOfWeek().getValue();
+                if (dayOfWeek >= 6) {
+                    weekendDates.add(current);
+                } else {
+                    weekdayDates.add(current);
+                }
+                current = current.plusDays(1);
+            }
+        }
+        
+        // 计算汇总
+        BigDecimal weekdayExpense = BigDecimal.ZERO;
+        BigDecimal weekendExpense = BigDecimal.ZERO;
+        BigDecimal weekdayIncome = BigDecimal.ZERO;
+        BigDecimal weekendIncome = BigDecimal.ZERO;
+        
+        for (int i = 1; i <= 5; i++) {
+            weekdayExpense = weekdayExpense.add(dayStats.get(i).getExpense());
+            weekdayIncome = weekdayIncome.add(dayStats.get(i).getIncome());
+        }
+        for (int i = 6; i <= 7; i++) {
+            weekendExpense = weekendExpense.add(dayStats.get(i).getExpense());
+            weekendIncome = weekendIncome.add(dayStats.get(i).getIncome());
+        }
+        
+        int weekdayCount = weekdayDates.size();
+        int weekendCount = weekendDates.size();
+        
+        // 计算日均（避免除0）
+        BigDecimal weekdayAvgExpense = weekdayCount > 0 
+                ? weekdayExpense.divide(new BigDecimal(weekdayCount), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        BigDecimal weekendAvgExpense = weekendCount > 0 
+                ? weekendExpense.divide(new BigDecimal(weekendCount), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        
+        // 获取分类对比数据
+        List<WeekdayAnalysisDto.CategoryCompare> weekdayTopCategories = getTopCategoriesByDayType(
+                userId, startDate, endDate, true, 5);
+        List<WeekdayAnalysisDto.CategoryCompare> weekendTopCategories = getTopCategoriesByDayType(
+                userId, startDate, endDate, false, 5);
+        
+        // 生成洞察建议
+        String insight = generateWeekdayInsight(weekdayAvgExpense, weekendAvgExpense, 
+                weekdayExpense, weekendExpense, weekdayCount, weekendCount);
+        
+        return WeekdayAnalysisDto.builder()
+                .weekdayExpense(weekdayExpense)
+                .weekendExpense(weekendExpense)
+                .weekdayIncome(weekdayIncome)
+                .weekendIncome(weekendIncome)
+                .weekdayCount(weekdayCount)
+                .weekendCount(weekendCount)
+                .weekdayAvgExpense(weekdayAvgExpense)
+                .weekendAvgExpense(weekendAvgExpense)
+                .dayDetails(new ArrayList<>(dayStats.values()))
+                .weekdayTopCategories(weekdayTopCategories)
+                .weekendTopCategories(weekendTopCategories)
+                .insight(insight)
+                .build();
+    }
+    
+    /**
+     * 获取工作日或周末的 Top 分类
+     */
+    private List<WeekdayAnalysisDto.CategoryCompare> getTopCategoriesByDayType(
+            Long userId, LocalDate startDate, LocalDate endDate, boolean isWeekday, int limit) {
+        
+        List<Transaction> transactions = transactionRepository
+                .findByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(userId, startDate, endDate);
+        
+        // 过滤工作日或周末的交易
+        List<Transaction> filtered = transactions.stream()
+                .filter(t -> "EXPENSE".equals(t.getType()))
+                .filter(t -> {
+                    int dayOfWeek = t.getTransactionDate().getDayOfWeek().getValue();
+                    boolean isWeekend = dayOfWeek >= 6;
+                    return isWeekday ? !isWeekend : isWeekend;
+                })
+                .collect(Collectors.toList());
+        
+        // 按分类汇总
+        Map<Long, BigDecimal> categoryAmounts = new HashMap<>();
+        for (Transaction t : filtered) {
+            Long categoryId = t.getCategoryId();
+            if (categoryId != null) {
+                categoryAmounts.merge(categoryId, t.getAmount(), BigDecimal::add);
+            }
+        }
+        
+        // 获取分类名称
+        List<Category> categories = categoryRepository.findByUserId(userId);
+        Map<Long, String> categoryNames = categories.stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+        
+        // 计算总额和排序
+        BigDecimal total = categoryAmounts.values().stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        return categoryAmounts.entrySet().stream()
+                .map(e -> {
+                    String name = categoryNames.getOrDefault(e.getKey(), "未知分类");
+                    double percentage = total.compareTo(BigDecimal.ZERO) > 0
+                            ? e.getValue().multiply(new BigDecimal("100")).divide(total, 2, RoundingMode.HALF_UP).doubleValue()
+                            : 0;
+                    return WeekdayAnalysisDto.CategoryCompare.builder()
+                            .categoryName(name)
+                            .amount(e.getValue())
+                            .percentage(percentage)
+                            .build();
+                })
+                .sorted((a, b) -> b.getAmount().compareTo(a.getAmount()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 生成工作日分析洞察
+     */
+    private String generateWeekdayInsight(BigDecimal weekdayAvg, BigDecimal weekendAvg,
+                                          BigDecimal weekdayTotal, BigDecimal weekendTotal,
+                                          int weekdayCount, int weekendCount) {
+        if (weekdayCount == 0 && weekendCount == 0) {
+            return "暂无数据，开始记账吧！";
+        }
+        
+        StringBuilder insight = new StringBuilder();
+        
+        // 比较日均消费
+        if (weekdayAvg.compareTo(BigDecimal.ZERO) > 0 && weekendAvg.compareTo(BigDecimal.ZERO) > 0) {
+            double ratio = weekendAvg.doubleValue() / weekdayAvg.doubleValue();
+            if (ratio > 2) {
+                insight.append("周末消费是工作日的").append(String.format("%.1f", ratio)).append("倍，建议控制周末开销；");
+            } else if (ratio < 0.8) {
+                insight.append("周末消费较少，宅家省钱模式开启；");
+            } else {
+                insight.append("工作日和周末消费较为均衡；");
+            }
+        }
+        
+        // 总消费对比
+        BigDecimal total = weekdayTotal.add(weekendTotal);
+        if (total.compareTo(BigDecimal.ZERO) > 0) {
+            double weekendPercent = weekendTotal.multiply(new BigDecimal("100"))
+                    .divide(total, 2, RoundingMode.HALF_UP).doubleValue();
+            if (weekendPercent > 40) {
+                insight.append("周末消费占总支出的").append(String.format("%.0f", weekendPercent)).append("%，占比偏高。");
+            }
+        }
+        
+        return insight.toString();
     }
 }

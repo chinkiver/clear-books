@@ -3,6 +3,7 @@ package com.accounting.controller;
 import com.accounting.dto.ApiResponse;
 import com.accounting.dto.StatisticsSummaryDto;
 import com.accounting.dto.StatisticsTrendDto;
+import com.accounting.dto.WeekdayAnalysisDto;
 import com.accounting.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,5 +59,13 @@ public class StatisticsController {
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate) {
         return ApiResponse.success(statisticsService.getBalance(startDate, endDate));
+    }
+    
+    @GetMapping("/weekday-analysis")
+    @Operation(summary = "工作日 vs 周末消费分析")
+    public ApiResponse<WeekdayAnalysisDto> weekdayAnalysis(
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate) {
+        return ApiResponse.success(statisticsService.getWeekdayAnalysis(startDate, endDate));
     }
 }

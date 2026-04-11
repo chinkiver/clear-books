@@ -95,6 +95,64 @@
       </el-col>
     </el-row>
 
+    <!-- 工作日 vs 周末分析 -->
+    <el-row :gutter="20" class="chart-row">
+      <el-col :span="16">
+        <el-card>
+          <template #header>
+            <div class="chart-header">
+              <span>工作日 vs 周末消费分析</span>
+              <el-tag type="warning" size="small">时间维度</el-tag>
+            </div>
+          </template>
+          <div class="weekday-analysis-container">
+            <div class="weekday-chart">
+              <v-chart class="chart" :option="weekdayOption" autoresize />
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header>
+            <span>时间维度洞察</span>
+          </template>
+          <div class="weekday-insight">
+            <div class="insight-summary">
+              <div class="insight-item">
+                <div class="insight-label">工作日日均</div>
+                <div class="insight-value expense">¥ {{ formatNumber(weekdayAnalysis.weekdayAvgExpense) }}</div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-label">周末日均</div>
+                <div class="insight-value danger">¥ {{ formatNumber(weekdayAnalysis.weekendAvgExpense) }}</div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-label">周末/工作日</div>
+                <div class="insight-value" :class="getWeekendRatioClass(weekdayAnalysis.weekendAvgExpense, weekdayAnalysis.weekdayAvgExpense)">
+                  {{ calculateWeekendRatio(weekdayAnalysis.weekendAvgExpense, weekdayAnalysis.weekdayAvgExpense) }}
+                </div>
+              </div>
+            </div>
+            <el-divider />
+            <div class="insight-text">
+              <el-icon class="insight-icon"><InfoFilled /></el-icon>
+              <span>{{ weekdayAnalysis.insight || '暂无分析数据' }}</span>
+            </div>
+            <el-divider />
+            <div class="weekday-top-categories">
+              <div class="top-title">工作日 TOP3</div>
+              <div v-for="(cat, index) in weekdayAnalysis.weekdayTopCategories.slice(0, 3)" :key="index" class="top-item">
+                <span class="top-rank">{{ index + 1 }}</span>
+                <span class="top-name">{{ cat.categoryName }}</span>
+                <span class="top-percent">{{ cat.percentage }}%</span>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 结构分析环形图 -->
     <el-row :gutter="20" class="chart-row">
       <el-col :span="12">
@@ -166,7 +224,7 @@ import { LineChart, PieChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import dayjs from 'dayjs'
-import { getTrend, getByCategory, getBalance } from '@/api/statistics'
+import { getTrend, getByCategory, getBalance, getWeekdayAnalysis } from '@/api/statistics'
 
 echarts.use([CanvasRenderer, LineChart, PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent, GraphicComponent])
 
@@ -175,6 +233,20 @@ const trendGroupBy = ref('DAY')
 const trendData = ref({ expense: [], income: [] })
 const expenseCategories = ref([])
 const incomeCategories = ref([])
+const weekdayAnalysis = ref({
+  weekdayExpense: 0,
+  weekendExpense: 0,
+  weekdayIncome: 0,
+  weekendIncome: 0,
+  weekdayCount: 0,
+  weekendCount: 0,
+  weekdayAvgExpense: 0,
+  weekendAvgExpense: 0,
+  dayDetails: [],
+  weekdayTopCategories: [],
+  weekendTopCategories: [],
+  insight: ''
+})
 const summary = reactive({
   expense: 0,
   income: 0,
@@ -484,8 +556,99 @@ const loadSummaryData = async () => {
   }
 }
 
+// 加载工作日/周末分析数据
+const loadWeekdayAnalysis = async () => {
+  const res = await getWeekdayAnalysis({
+    startDate: queryForm.startDate,
+    endDate: queryForm.endDate
+  })
+  weekdayAnalysis.value = res
+}
+
+// 计算周末/工作日比例
+const calculateWeekendRatio = (weekendAvg, weekdayAvg) => {
+  if (!weekdayAvg || weekdayAvg <= 0) return '-'
+  const ratio = weekendAvg / weekdayAvg
+  return ratio.toFixed(2) + 'x'
+}
+
+// 获取比例样式类
+const getWeekendRatioClass = (weekendAvg, weekdayAvg) => {
+  if (!weekdayAvg || weekdayAvg <= 0) return ''
+  const ratio = weekendAvg / weekdayAvg
+  if (ratio > 2) return 'danger'
+  if (ratio > 1.5) return 'warning'
+  if (ratio < 0.8) return 'good'
+  return 'normal'
+}
+
+// 工作日/周末柱状图配置
+const weekdayOption = computed(() => {
+  const dayDetails = weekdayAnalysis.value.dayDetails || []
+  const days = dayDetails.map(d => d.dayOfWeek)
+  const expenses = dayDetails.map(d => d.expense)
+  const incomes = dayDetails.map(d => d.income)
+  
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' }
+    },
+    legend: {
+      data: ['支出', '收入'],
+      top: 0
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: days,
+      axisLabel: {
+        color: (value, index) => {
+          // 周末高亮显示
+          return index >= 5 ? '#F56C6C' : '#606266'
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { formatter: '¥{value}' }
+    },
+    series: [
+      {
+        name: '支出',
+        type: 'bar',
+        data: expenses,
+        itemStyle: {
+          color: (params) => {
+            // 周末使用红色，工作日使用蓝色
+            return params.dataIndex >= 5 ? '#F56C6C' : '#409EFF'
+          },
+          borderRadius: [4, 4, 0, 0]
+        },
+        barMaxWidth: 30
+      },
+      {
+        name: '收入',
+        type: 'bar',
+        data: incomes,
+        itemStyle: {
+          color: '#67C23A',
+          borderRadius: [4, 4, 0, 0]
+        },
+        barMaxWidth: 30
+      }
+    ]
+  }
+})
+
 const loadData = async () => {
-  await Promise.all([loadTrendData(), loadCategoryData(), loadSummaryData()])
+  await Promise.all([loadTrendData(), loadCategoryData(), loadSummaryData(), loadWeekdayAnalysis()])
 }
 
 onMounted(() => {
@@ -625,4 +788,123 @@ onMounted(() => {
 .stable-normal { color: #E6A23C; }
 .stable-warning { color: #F56C6C; }
 .stable-bad { color: #F56C6C; font-weight: bold; }
+
+.weekday-analysis-container {
+  height: 350px;
+}
+
+.weekday-chart {
+  height: 100%;
+}
+
+.weekday-insight {
+  padding: 10px;
+}
+
+.insight-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insight-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.insight-label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.insight-value {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.insight-value.expense {
+  color: #409EFF;
+}
+
+.insight-value.danger {
+  color: #F56C6C;
+}
+
+.insight-value.good {
+  color: #67C23A;
+}
+
+.insight-value.warning {
+  color: #E6A23C;
+}
+
+.insight-value.normal {
+  color: #909399;
+}
+
+.insight-text {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.insight-icon {
+  color: #E6A23C;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.weekday-top-categories {
+  margin-top: 10px;
+}
+
+.top-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 10px;
+}
+
+.top-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.top-rank {
+  width: 18px;
+  height: 18px;
+  background: #409EFF;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.top-item:nth-child(2) .top-rank {
+  background: #67C23A;
+}
+
+.top-item:nth-child(3) .top-rank {
+  background: #E6A23C;
+}
+
+.top-name {
+  flex: 1;
+  color: #606266;
+}
+
+.top-percent {
+  color: #F56C6C;
+  font-weight: 500;
+}
 </style>
