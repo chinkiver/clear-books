@@ -24,7 +24,8 @@ A personal accounting system based on Spring Boot + Vue3 + MySQL, helping you re
 
 - **Account Management**: Manage bank cards, WeChat Wallet, Alipay, and other accounts
 - **Payment Methods**: Manage WeChat Pay, Alipay, and other payment methods
-- **Category Management**: Custom income and expense categories with tree structure
+- **Category Management**: Custom income and expense categories with two-level tree structure
+- **System Settings**: Customize system name, logo, and favicon
 - **Transaction Records**: Record detailed information for each transaction
 - **Quick Add**: Quickly add accounts/categories/payment methods during transaction entry
 - **Statistics & Reports**: Weekly, monthly, quarterly, and yearly statistics with charts
@@ -101,6 +102,7 @@ ssh user@server "crontab -l | { cat; echo \"0 2 * * * /opt/clear-books/backup.sh
 - **账户管理**：管理银行卡、微信钱包、支付宝等账户，支持余额调整
 - **支付方式管理**：管理微信支付、支付宝支付等支付方式，支持拖拽排序
 - **分类管理**：自定义收入和支出分类，支持两级树形结构，支持拖拽排序
+- **系统设置**：自定义系统名称、Logo 和网站图标，支持文件上传
 - **每日流水**：记录每笔交易的详细信息，支持收入、支出、转账三种类型
 - **快速添加**：录入流水时可直接在弹窗中快速添加账户、分类、支付方式
 - **统计报表**：按周、月、季度、年统计收支情况，支持图表展示
@@ -332,6 +334,9 @@ clear-books/
 │   └── app.2024-01-15.log             # 历史日志（自动清理）
 ├── backups/                           # 备份目录（自动创建，保留7天）
 │   └── backup_accounting_20240115_020000.sql.gz
+├── uploads/                           # 上传文件目录（Logo/Icon）
+│   ├── logos/                         # 系统 Logo 文件
+│   └── icons/                         # 网站图标文件
 └── app.pid                            # 进程ID文件（运行时生成）
 ```
 
@@ -381,29 +386,26 @@ mysql -u root -p accounting < backup.sql
 
 ### 常见问题排查
 
-#### 1. 更新系统图标/Logo 报错 "Data truncation: Data too long"
+#### 1. 上传的系统 Logo/图标无法显示
 
-**问题原因**：`system_settings` 表的 `setting_value` 字段默认为 VARCHAR(255)，无法存储 Base64 编码的图片数据。
+**问题原因**：`uploads/` 目录没有写入权限，或目录不存在。
 
 **解决方法**：
 
 ```bash
-# 在服务器上执行修复脚本
+# 进入部署目录
 cd /opt/clear-books
-chmod +x scripts/server/fix-setting-value.sh
-./scripts/server/fix-setting-value.sh
-```
 
-或者手动执行 SQL：
-
-```sql
-ALTER TABLE system_settings MODIFY COLUMN setting_value TEXT;
+# 创建上传目录并设置权限
+mkdir -p uploads/logos uploads/icons
+chmod -R 755 uploads
 ```
 
 **预防措施**：
-- 图标文件建议不超过 50KB
 - Logo 文件建议不超过 100KB
-- 使用 PNG 或 SVG 格式，避免 BMP 等大体积格式
+- 图标文件建议不超过 50KB
+- 使用 PNG 或 SVG 格式
+- 确保 `uploads/` 目录已加入备份列表
 
 ---
 
