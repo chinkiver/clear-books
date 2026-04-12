@@ -5,6 +5,7 @@ import com.accounting.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,6 +45,46 @@ public class TransactionController {
     @Operation(summary = "删除流水")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         transactionService.delete(id);
+        return ApiResponse.success();
+    }
+
+    @GetMapping("/tags")
+    @Operation(summary = "获取用户所有标签")
+    public ApiResponse<List<String>> getTags() {
+        return ApiResponse.success(transactionService.getUserTags());
+    }
+
+    @GetMapping("/tags/with-count")
+    @Operation(summary = "获取用户所有标签及使用次数")
+    public ApiResponse<List<java.util.Map<String, Object>>> getTagsWithCount() {
+        return ApiResponse.success(transactionService.getUserTagsWithCount());
+    }
+
+    @PostMapping("/tags/preset")
+    @Operation(summary = "添加预设标签")
+    public ApiResponse<Void> addPresetTag(@RequestParam String tagName) {
+        transactionService.addPresetTag(tagName);
+        return ApiResponse.success();
+    }
+
+    @PutMapping("/tags/color")
+    @Operation(summary = "更新标签颜色")
+    public ApiResponse<Void> updateTagColor(@RequestParam String tagName, @RequestParam String color) {
+        transactionService.updateTagColor(tagName, color);
+        return ApiResponse.success();
+    }
+
+    @PutMapping("/tags/rename")
+    @Operation(summary = "重命名标签")
+    public ApiResponse<Void> renameTag(@RequestParam String oldName, @RequestParam String newName) {
+        transactionService.renameTag(oldName, newName);
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/tags/{tagName}")
+    @Operation(summary = "删除标签")
+    public ApiResponse<Void> deleteTag(@PathVariable String tagName) {
+        transactionService.deleteTag(tagName);
         return ApiResponse.success();
     }
 }

@@ -59,6 +59,10 @@
             <el-icon><TrendCharts /></el-icon>
             <span>统计报表</span>
           </el-menu-item>
+          <el-menu-item index="/tags">
+            <el-icon><CollectionTag /></el-icon>
+            <span>标签管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 

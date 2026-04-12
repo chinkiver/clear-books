@@ -57,6 +57,12 @@ const routes = [
         meta: { title: '个人信息' }
       },
       {
+        path: 'tags',
+        name: 'Tags',
+        component: () => import('@/views/Tags.vue'),
+        meta: { title: '标签管理' }
+      },
+      {
         path: 'system-settings',
         name: 'SystemSettings',
         component: () => import('@/views/SystemSettings.vue'),

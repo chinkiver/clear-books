@@ -41,6 +41,35 @@
             <el-option v-for="acc in accounts" :key="acc.id" :label="acc.name" :value="acc.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="分类">
+          <el-select v-model="queryForm.categoryId" placeholder="全部分类" clearable style="width: 160px">
+            <el-option
+              v-for="cat in allCategories"
+              :key="cat.id"
+              :label="cat.parentId ? '　└ ' + cat.name : cat.name"
+              :value="cat.id"
+            >
+              <span v-if="cat.parentId" style="padding-left: 20px; color: #909399;">└ {{ cat.name }}</span>
+              <span v-else>{{ cat.name }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select v-model="queryForm.tag" placeholder="全部标签" clearable filterable style="width: 150px">
+            <el-option v-for="tag in allTags" :key="tag" :label="tag" :value="tag" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="金额">
+          <el-input-number 
+            v-model="queryForm.amount" 
+            :precision="2" 
+            :min="0" 
+            placeholder="输入金额查询" 
+            style="width: 150px"
+            controls-position="right"
+            clearable
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadData">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
@@ -49,6 +78,7 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" stripe>
+        <el-table-column type="index" label="序号" width="60" align="center" :index="(index) => (queryForm.page - 1) * queryForm.size + index + 1" />
         <el-table-column prop="transactionDate" label="日期" width="110" />
         <el-table-column prop="type" label="类型" width="70">
           <template #default="{ row }">
@@ -65,14 +95,47 @@
         </el-table-column>
         <el-table-column prop="accountName" label="账户" width="160" show-overflow-tooltip />
         <el-table-column prop="paymentMethodName" label="支付方式" width="100" show-overflow-tooltip />
+        <el-table-column label="标签" width="160">
+          <template #default="{ row }">
+            <el-tag
+              v-for="tag in (row.tags || [])"
+              :key="tag"
+              size="small"
+              class="tag-item"
+              :color="tagColorMap[tag] || '#409EFF'"
+              effect="dark"
+            >
+              {{ tag }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="description" label="备注" min-width="150" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
+            <el-button type="info" link @click="handleQuickTag(row)">标签</el-button>
             <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 页面合计 -->
+      <div class="page-summary" v-if="tableData.length > 0">
+        <span class="summary-item">
+          本页收入：<span class="income-text">+{{ formatAmount(pageTotals.income) }}</span>
+        </span>
+        <span class="summary-item">
+          本页支出：<span class="expense-text">-{{ formatAmount(pageTotals.expense) }}</span>
+        </span>
+        <span class="summary-item" v-if="pageTotals.transfer > 0">
+          本页转账：<span>{{ formatAmount(pageTotals.transfer) }}</span>
+        </span>
+        <span class="summary-item summary-balance">
+          本页结余：<span :class="pageTotals.balance >= 0 ? 'income-text' : 'expense-text'">
+            {{ pageTotals.balance >= 0 ? '+' : '' }}{{ formatAmount(pageTotals.balance) }}
+          </span>
+        </span>
+      </div>
 
       <!-- 分页 -->
       <el-pagination
@@ -152,6 +215,25 @@
             <el-button type="primary" plain @click="openQuickAddPaymentMethod" title="新增支付方式">
               <el-icon><Plus /></el-icon>
             </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select
+            v-model="form.tags"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请输入或选择标签，按回车确认新标签"
+            style="width: 100%"
+          >
+            <el-option v-for="tag in allTags" :key="tag" :label="tag" :value="tag">
+              <span class="tag-option-dot" :style="{ backgroundColor: tagColorMap[tag] || '#409EFF' }"></span>
+              {{ tag }}
+            </el-option>
+          </el-select>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+            输入新标签后按回车键即可创建，一条流水可添加多个标签
           </div>
         </el-form-item>
         <el-form-item label="备注" prop="description">
@@ -241,17 +323,47 @@
         <el-button type="primary" @click="submitQuickPaymentMethod" :loading="quickAddLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 快速编辑标签弹窗 -->
+    <el-dialog v-model="quickTagVisible" title="编辑标签" width="400px" destroy-on-close>
+      <el-form label-width="80px">
+        <el-form-item label="标签">
+          <el-select
+            v-model="quickTagValues"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请输入或选择标签"
+            style="width: 100%"
+          >
+            <el-option v-for="tag in allTags" :key="tag" :label="tag" :value="tag">
+              <span class="tag-option-dot" :style="{ backgroundColor: tagColorMap[tag] || '#409EFF' }"></span>
+              {{ tag }}
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickTagVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitQuickTag" :loading="quickTagLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from '@/api/transaction'
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getTagsWithCount } from '@/api/transaction'
 import { getAccounts, createAccount } from '@/api/account'
 import { getCategories, createCategory } from '@/api/category'
 import { getPaymentMethods, createPaymentMethod } from '@/api/paymentMethod'
+
+const route = useRoute()
+const router = useRouter()
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -286,11 +398,20 @@ const quickCategoryRules = {
 const quickPaymentMethodRules = {
   name: [{ required: true, message: '请输入支付方式名称', trigger: 'blur' }]
 }
+
+// 快速编辑标签
+const quickTagVisible = ref(false)
+const quickTagLoading = ref(false)
+const quickTagRow = ref(null)
+const quickTagValues = ref([])
+
 const tableData = ref([])
 const total = ref(0)
 const accounts = ref([])
 const categories = ref([])
 const paymentMethods = ref([])
+const allTags = ref([])
+const tagsWithColor = ref([])
 const dateRange = ref([])
 const dateRangeType = ref('month')  // month: 本月, all: 全部, custom: 自定义
 const formRef = ref()
@@ -300,8 +421,11 @@ const queryForm = reactive({
   endDate: '',
   type: '',
   accountId: '',
-  page: 0,
-  size: 20
+  categoryId: '',
+  tag: '',
+  amount: null,
+  page: 1,  // 前端从1开始，传给后端时减1
+  size: 10
 })
 
 const form = reactive({
@@ -313,6 +437,7 @@ const form = reactive({
   toAccountId: '',
   categoryId: '',
   paymentMethodId: '',
+  tags: [],
   description: '',
   countAsExpense: false
 })
@@ -340,6 +465,36 @@ const flattenCategories = (tree) => {
 const filteredCategories = computed(() => {
   const flatList = flattenCategories(categories.value)
   return flatList.filter(c => c.type === form.type)
+})
+
+// 查询表单中使用的全部分类（平铺展示）
+const allCategories = computed(() => {
+  return flattenCategories(categories.value)
+})
+
+// 标签颜色映射
+const tagColorMap = computed(() => {
+  const map = {}
+  tagsWithColor.value.forEach(tag => {
+    if (tag.color) {
+      map[tag.name] = tag.color
+    }
+  })
+  return map
+})
+
+// 当前页金额合计
+const pageTotals = computed(() => {
+  let income = 0
+  let expense = 0
+  let transfer = 0
+  tableData.value.forEach(row => {
+    const amount = Number(row.amount) || 0
+    if (row.type === 'INCOME') income += amount
+    else if (row.type === 'EXPENSE') expense += amount
+    else if (row.type === 'TRANSFER') transfer += amount
+  })
+  return { income, expense, transfer, balance: income - expense }
 })
 
 // 快速新增分类时可用的一级分类选项
@@ -407,7 +562,10 @@ const resetQuery = () => {
   queryForm.endDate = ''
   queryForm.type = ''
   queryForm.accountId = ''
-  queryForm.page = 0
+  queryForm.categoryId = ''
+  queryForm.tag = ''
+  queryForm.amount = null
+  queryForm.page = 1
   handleDateRangeTypeChange('month')
 }
 
@@ -420,6 +578,7 @@ const resetForm = () => {
   form.toAccountId = ''
   form.categoryId = ''
   form.paymentMethodId = ''
+  form.tags = []
   form.description = ''
   form.countAsExpense = false
 }
@@ -528,6 +687,37 @@ const submitQuickPaymentMethod = async () => {
   }
 }
 
+const handleQuickTag = (row) => {
+  quickTagRow.value = row
+  quickTagValues.value = row.tags ? [...row.tags] : []
+  quickTagVisible.value = true
+}
+
+const submitQuickTag = async () => {
+  if (!quickTagRow.value) return
+  quickTagLoading.value = true
+  try {
+    const submitData = {
+      type: quickTagRow.value.type,
+      amount: quickTagRow.value.amount,
+      transactionDate: quickTagRow.value.transactionDate,
+      accountId: quickTagRow.value.accountId,
+      toAccountId: quickTagRow.value.toAccountId,
+      categoryId: quickTagRow.value.categoryId,
+      paymentMethodId: quickTagRow.value.paymentMethodId,
+      description: quickTagRow.value.description,
+      tags: quickTagValues.value,
+      countAsExpense: quickTagRow.value.countAsExpense
+    }
+    await updateTransaction(quickTagRow.value.id, submitData)
+    ElMessage.success('标签更新成功')
+    quickTagVisible.value = false
+    loadData()
+  } finally {
+    quickTagLoading.value = false
+  }
+}
+
 const handleDelete = (row) => {
   ElMessageBox.confirm('确定要删除这条流水吗？', '提示', {
     type: 'warning'
@@ -561,12 +751,15 @@ const loadData = async () => {
   try {
     // 构建查询参数，过滤掉空值
     const params = {}
-    if (queryForm.page !== undefined) params.page = queryForm.page
+    if (queryForm.page !== undefined) params.page = queryForm.page - 1  // 后端从0开始
     if (queryForm.size !== undefined) params.size = queryForm.size
     if (queryForm.startDate) params.startDate = queryForm.startDate
     if (queryForm.endDate) params.endDate = queryForm.endDate
     if (queryForm.type) params.type = queryForm.type
     if (queryForm.accountId) params.accountId = queryForm.accountId
+    if (queryForm.categoryId) params.categoryId = queryForm.categoryId
+    if (queryForm.tag) params.tag = queryForm.tag
+    if (queryForm.amount !== null && queryForm.amount !== undefined && queryForm.amount !== '') params.amount = queryForm.amount
     
     const res = await getTransactions(params)
     tableData.value = res.content
@@ -577,12 +770,30 @@ const loadData = async () => {
 }
 
 onMounted(async () => {
-  // 默认显示本月数据
-  handleDateRangeTypeChange('month')
-  
   accounts.value = await getAccounts()
   categories.value = await getCategories()
   paymentMethods.value = await getPaymentMethods()
+  const tagRes = await getTagsWithCount()
+  tagsWithColor.value = tagRes || []
+  allTags.value = (tagRes || []).map(t => t.name)
+
+  // 从 URL 读取标签参数
+  if (route.query.tag) {
+    queryForm.tag = route.query.tag
+  }
+
+  // 默认显示本月数据（如果有 URL 参数，先应用参数再加载）
+  if (!queryForm.tag && !route.query.type && !route.query.accountId && !route.query.categoryId) {
+    handleDateRangeTypeChange('month')
+  } else {
+    // 保持日期为当月（因为标签页跳转没有带日期参数）
+    const start = dayjs().startOf('month').format('YYYY-MM-DD')
+    const end = dayjs().endOf('month').format('YYYY-MM-DD')
+    dateRange.value = [start, end]
+    queryForm.startDate = start
+    queryForm.endDate = end
+    loadData()
+  }
 })
 </script>
 
@@ -612,5 +823,43 @@ onMounted(async () => {
 .pagination {
   margin-top: 20px;
   justify-content: flex-end;
+}
+
+.tag-item {
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.tag-option-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.page-summary {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-balance {
+  font-weight: 600;
+  margin-left: auto;
 }
 </style>

@@ -26,13 +26,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "AND (:type IS NULL OR t.type = :type) " +
            "AND (:categoryId IS NULL OR t.categoryId = :categoryId) " +
            "AND (:accountId IS NULL OR t.accountId = :accountId) " +
-           "ORDER BY t.transactionDate DESC, t.transactionTime DESC")
+           "AND (:amount IS NULL OR t.amount = :amount) " +
+           "AND (:tag IS NULL OR t.tags LIKE %:tag%)")
     Page<Transaction> findByFilters(@Param("userId") Long userId,
                                     @Param("startDate") LocalDate startDate,
                                     @Param("endDate") LocalDate endDate,
                                     @Param("type") String type,
                                     @Param("categoryId") Long categoryId,
                                     @Param("accountId") Long accountId,
+                                    @Param("amount") BigDecimal amount,
+                                    @Param("tag") String tag,
                                     Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
@@ -63,4 +66,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(Long userId, 
                                                                                       LocalDate startDate, 
                                                                                       LocalDate endDate);
+
+    @Query("SELECT DISTINCT t.tags FROM Transaction t WHERE t.userId = :userId AND t.tags IS NOT NULL AND t.tags <> ''")
+    List<String> findDistinctTagsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.tags IS NOT NULL AND t.tags <> ''")
+    List<Transaction> findByUserIdWithTags(@Param("userId") Long userId);
+
+    @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.tags LIKE %:tag%")
+    List<Transaction> findByUserIdAndTag(@Param("userId") Long userId, @Param("tag") String tag);
 }

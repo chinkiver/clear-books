@@ -1,1 +1,0 @@
-import{r as t}from"./index-DYIoTVne.js";const s=e=>t.get("/categories",{params:{type:e,tree:!0}}),o=e=>t.post("/categories",e),g=(e,a)=>t.put(`/categories/${e}`,a),c=e=>t.delete(`/categories/${e}`);export{o as c,c as d,s as g,g as u};
