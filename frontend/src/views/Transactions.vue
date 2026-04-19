@@ -98,7 +98,7 @@
         <el-table-column label="标签" width="160">
           <template #default="{ row }">
             <el-tag
-              v-for="tag in (row.tags || [])"
+              v-for="tag in (row.tags || []).filter(t => t && t.trim())"
               :key="tag"
               size="small"
               class="tag-item"
